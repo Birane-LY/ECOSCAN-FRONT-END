@@ -1,20 +1,40 @@
+'use client'
+
 import React, { useState } from 'react'
-import { ArrowUpRight, ChevronRight, Eye } from 'lucide-react'
+import {ArrowUpRight, ChevronRight, Eye, AlertCircle } from 'lucide-react'
 import { APP_CONFIG } from '@/lib/config'
 
-export function LoginScreen({ onLogin }) {
+export function LoginScreen({ onLogin, onLoginDemo }) {
   const [email, setEmail] = useState('camille@nova-industries.fr')
   const [password, setPassword] = useState('ecoscan2024')
   const [showPassword, setShowPassword] = useState(false)
   const [remember, setRemember] = useState(true)
   const [forgot, setForgot] = useState(false)
+  
+  const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState(null)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (forgot) return
+
+    setLoading(true)
+    setErrorMessage(null)
+
+    const result = await onLogin(email, password)
+    setLoading(false)
+
+    if (!result?.success) {
+      setErrorMessage(result?.error || 'Échec de la connexion au serveur.')
+    }
+  }
 
   return (
     <main className="auth-shell">
       <section className="auth-visual">
         <div className="brand-row">
-          <img className="ecoscan-logo" src={APP_CONFIG.logoUrl} alt="EcoScan" />
-          <span>{APP_CONFIG.name}</span>
+          <img className="ecoscan-logo" src={APP_CONFIG?.logoUrl || '/logo.svg'} alt="EcoScan" />
+          <span>{APP_CONFIG?.name || 'EcoScan'}</span>
         </div>
         <p className="eyebrow">PILOTAGE ÉNERGÉTIQUE</p>
         <h1>Décidez avec une longueur d’avance.</h1>
@@ -29,6 +49,13 @@ export function LoginScreen({ onLogin }) {
             ? 'Saisissez votre email pour recevoir un lien de récupération.'
             : 'Connectez-vous à votre espace Nova Industries.'}
         </p>
+
+        {errorMessage && (
+          <div className="auth-error-banner" style={{ color: 'red', marginBottom: '1rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <AlertCircle size={16} />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         {forgot ? (
           <>
@@ -48,11 +75,12 @@ export function LoginScreen({ onLogin }) {
             </button>
           </>
         ) : (
-          <>
+          <form onSubmit={handleSubmit}>
             <label>
               Email professionnel
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -62,6 +90,7 @@ export function LoginScreen({ onLogin }) {
               <div className="password-field">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -85,8 +114,9 @@ export function LoginScreen({ onLogin }) {
                 Mot de passe oublié ?
               </button>
             </label>
-            <button className="primary-button" onClick={() => onLogin('admin')}>
-              Se connecter <ArrowUpRight size={15} />
+            
+            <button type="submit" className="primary-button" disabled={loading}>
+              {loading ? 'Connexion en cours...' : 'Se connecter'} <ArrowUpRight size={15} />
             </button>
 
             <div className="auth-divider">
@@ -94,14 +124,14 @@ export function LoginScreen({ onLogin }) {
             </div>
 
             <div className="demo-accounts">
-              <button onClick={() => onLogin('ops')}>
+              <button type="button" onClick={() => onLoginDemo ? onLoginDemo('ops') : onLogin('ops')}>
                 <b>OD</b>
                 <span>
                   Opérations<small>Accès quotidien</small>
                 </span>
                 <ChevronRight size={14} />
               </button>
-              <button onClick={() => onLogin('viewer')}>
+              <button type="button" onClick={() => onLoginDemo ? onLoginDemo('viewer') : onLogin('viewer')}>
                 <b>FN</b>
                 <span>
                   Lecture seule<small>Consultation</small>
@@ -109,7 +139,7 @@ export function LoginScreen({ onLogin }) {
                 <ChevronRight size={14} />
               </button>
             </div>
-          </>
+          </form>
         )}
       </section>
     </main>
