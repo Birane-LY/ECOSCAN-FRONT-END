@@ -1,45 +1,34 @@
+// constants.js
 export const ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   ADMIN_ORGANISATION: 'ADMIN_ORGANISATION',
   UTILISATEUR_ORGANISATION: 'UTILISATEUR_ORGANISATION',
   CONSULTANT: 'CONSULTANT',
-  // Incompatibilités ou équivalents UI Front
-  ADMIN: 'admin',
-  OPS: 'ops',
-  VIEWER: 'viewer',
-}
-
-// Convertit un rôle Django en rôle UI Front-End
-export function mapRoleToFront(backendRole) {
-  switch (backendRole) {
-    case 'SUPER_ADMIN':
-    case 'ADMIN_ORGANISATION':
-      return 'admin'
-    case 'UTILISATEUR_ORGANISATION':
-      return 'ops'
-    case 'CONSULTANT':
-    default:
-      return 'viewer'
-  }
 }
 
 export const ROLE_PROFILES = {
-  admin: {
+  SUPER_ADMIN: {
+    name: 'Super Admin',
+    initials: 'SA',
+    label: 'Développeur Platforme',
+    email: 'admin@ecoscan.sn',
+  },
+  ADMIN_ORGANISATION: {
     name: 'Camille Martin',
     initials: 'CM',
     label: 'Administratrice',
     email: 'camille@nova-industries.fr',
   },
-  ops: {
+  UTILISATEUR_ORGANISATION: {
     name: 'Ousmane Diop',
     initials: 'OD',
     label: 'Opérations',
     email: 'ousmane@nova-industries.fr',
   },
-  viewer: {
+  CONSULTANT: {
     name: 'Fatou Ndiaye',
     initials: 'FN',
-    label: 'Lecture seule',
+    label: 'Consultante',
     email: 'fatou@nova-industries.fr',
   },
 }
