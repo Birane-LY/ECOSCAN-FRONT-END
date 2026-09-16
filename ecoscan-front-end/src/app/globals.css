@@ -80,7 +80,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid color-mix(in srgb
 .nav-caption-spaced { margin-top: 27px; }
 .nav-item { width: 100%; border: 0; background: transparent; border-radius: 9px; color: var(--ink-soft); display: flex; align-items: center; gap: 11px; min-height: 38px; padding: 0 11px; text-align: left; font-size: 12px; transition: background .2s, color .2s, transform .2s; }
 .nav-item:hover { background: var(--muted); color: var(--primary); transform: translateX(2px); }
-.nav-item.active { background: var(--surface-cyan); color: var(--brand-blue); font-weight: 650; box-shadow: none; }
+.nav-item.active { background: var(--surface-cyan); color: var(--brand-blue); font-weight: 650; box-shadow: none;}
 .nav-pulse { margin-left: auto; width: 5px; height: 5px; border-radius: 50%; background: var(--brand-teal); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-teal) 18%, transparent); }
 .new-pill { margin-left: auto; color: var(--brand-blue); background: var(--surface-lime); border-radius: 5px; padding: 3px 6px; font-size: 9px; }
 
@@ -142,7 +142,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid color-mix(in srgb
 .theme-dark .profile-switch-panel,
 .theme-dark .upload-modal,
 .theme-dark .detail-drawer { background: var(--card); color: var(--foreground); border-color: var(--border); }
-.theme-dark .nav-item.active { background: #163f61; color: #a8edf1; box-shadow: none; }
+.theme-dark .nav-item.active { background: #163f61; color: #a8edf1; box-shadow: inset 3px 0 var(--brand-orange); }
 .theme-dark .nav-item:hover,
 .theme-dark .icon-button:hover { background: #173b5a; color: #8fe3ea; }
 .theme-dark .segmented,
@@ -181,7 +181,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid color-mix(in srgb
 .theme-dark .search-trigger,
 .theme-dark .topbar .breadcrumb,
 .theme-dark .topbar .breadcrumb strong { color: #dbe9de; }
-.theme-dark .nav-item.active { background: #174b6b; color: #b8f1f3; box-shadow: none; }
+.theme-dark .nav-item.active { background: #174b6b; color: #b8f1f3; box-shadow: inset 3px 0 #ee8738; }
 .theme-dark .nav-pulse { background: #58b8cb; box-shadow: 0 0 0 4px #1c5670; }
 .theme-dark .workspace-switcher,
 .theme-dark .streak-card,
@@ -229,6 +229,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid color-mix(in srgb
 @media (prefers-reduced-motion: reduce) {
   .theme-dark *, .theme-dark *::before, .theme-dark *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .theme-dark *, .theme-dark *::before, .theme-dark *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
 
 /* SENELEC-inspired EcoScan color balance: blue foundation, cyan signal, orange energy, lime used sparingly. */
 .ecoscan-shell { background: radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--brand-lime) 18%, transparent), transparent 28%), linear-gradient(135deg, #f5f8fb 0%, #edf5f7 52%, #dcecf0 100%); }
@@ -237,7 +240,10 @@ button:focus-visible, input:focus-visible { outline: 3px solid color-mix(in srgb
 .theme-dark .workspace-switcher, .theme-dark .streak-card, .theme-dark .platform-console-link { background: #123553; border-color: #275d79; }
 .theme-dark .platform-console-link, .theme-dark .platform-console-link strong, .theme-dark .streak-card { color: #a8edf1; }
 .theme-dark .platform-console-link small, .theme-dark .streak-card span { color: #b4cedc; }
-.theme-dark .streak-icon { background: #1b6171; }
+.theme-dark .streak-icon { background: #1b6171; color: #d7f6f1; }
+.theme-dark .new-pill { color: #f8d1ae; background: #6b3c28; }
+.theme-dark .briefing-card::after { border-color: #28637b; box-shadow: 0 0 0 22px #123553, 0 0 0 23px #1b4d68, 0 0 0 45px #0f2d4a, 0 0 0 46px #244d6d; opacity: .62; }
+
 /* SuperAdmin platform cockpit */
 .admin-shell { min-height: 100vh; display: flex; background: #f3f6f2; color: var(--foreground); }
 .admin-mobile-close { display: none; }.admin-sidebar { width: 248px; flex: 0 0 248px; display: flex; flex-direction: column; padding: 22px 14px 16px; background: #17231d; color: #dce8de; }
