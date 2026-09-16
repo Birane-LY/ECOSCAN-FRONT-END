@@ -1,0 +1,5 @@
+export * from './hooks/useAssistant'
+export * from './components/AssistantView'
+export * from './components/ChatBubble'
+export * from './components/ChatInput'
+export * from './components/SuggestionsSidebar'
