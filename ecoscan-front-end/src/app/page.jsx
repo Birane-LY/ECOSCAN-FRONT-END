@@ -8,6 +8,7 @@ import { OverviewView } from '@/modules/overview/components/OverviewView'
 import { useOverviewData } from '@/modules/overview/hooks/useOverviewData'
 import { CaptureModal } from '@/components/layout/CaptureModal'
 import { AnalysesView } from '@/modules/analyses/components/AnalysesView'
+import { DataCenterView } from '@/modules/data-center/components/DataCenterView' 
 
 import {
   AppShell,
@@ -195,6 +196,10 @@ export default function MainPage() {
           
           {view === 'analyses' && (
             <AnalysesView setDrawer={setDrawer} />
+          )}
+
+          {view === 'data' && (
+            <DataCenterView setDrawer={setDrawer} />
           )}
         </div>
 
