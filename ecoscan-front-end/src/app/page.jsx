@@ -7,6 +7,7 @@ import { LoginScreen } from '@/modules/auth/components/LoginScreen'
 import { OverviewView } from '@/modules/overview/components/OverviewView'
 import { useOverviewData } from '@/modules/overview/hooks/useOverviewData'
 import { CaptureModal } from '@/components/layout/CaptureModal'
+import { AnalysesView } from '@/modules/analyses/components/AnalysesView'
 
 import {
   AppShell,
@@ -175,25 +176,26 @@ export default function MainPage() {
         />
 
         <div className="content-wrap">
-          <OverviewView
-            user={currentProfile}
-            currentDate={new Date().toLocaleDateString('fr-FR', {
-              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-            }).toUpperCase()}
-            briefingData={{ historique, loading: overviewLoading, error: overviewError }}
-            insightData={{ historique, objectifs, loading: overviewLoading }}
-            decisionsData={objectifs}
-            assistantData={{}}
-            period={period}
-            setPeriod={setPeriod}
-            point={point}
-            setPoint={setPoint}
-            completed={completed}
-            setCompleted={setCompleted}
-            openUpload={openUpload}
-            ask={handleAskWithNav}
-            setDrawer={setDrawer}
-          />
+           {view === 'overview' && (
+            <OverviewView
+              user={currentProfile}
+              currentDate={new Date().toLocaleDateString('fr-FR', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+              }).toUpperCase()}
+              briefingData={{ historique, loading: overviewLoading, error: overviewError }}
+              insightData={{ historique, objectifs, loading: overviewLoading }}
+              decisionsData={objectifs}
+              assistantData={{}}
+              period={period} setPeriod={setPeriod}
+              point={point} setPoint={setPoint}
+              completed={completed} setCompleted={setCompleted}
+              openUpload={openUpload} ask={handleAskWithNav} setDrawer={setDrawer}
+            />
+          )}
+          
+          {view === 'analyses' && (
+            <AnalysesView setDrawer={setDrawer} />
+          )}
         </div>
 
         <BottomNav view={view} go={go} onCapture={() => setCaptureOpen(true)} />
