@@ -10,6 +10,8 @@ import { CaptureModal } from '@/components/layout/CaptureModal'
 import { AnalysesView } from '@/modules/analyses/components/AnalysesView'
 import { DataCenterView } from '@/modules/data-center/components/DataCenterView' 
 import { GoalsView } from '@/modules/goals/components/GoalsView'
+import { AssistantView } from '@/modules/assistant/components/AssistantView'
+import { useAssistant } from '@/modules/assistant/hooks/useAssistant'
 
 import {
   AppShell,
@@ -63,6 +65,7 @@ export default function MainPage() {
     login, logout, switchOrganisation, switchRole, can,
   } = useAuth()
 
+   const assistant = useAssistant()
   // --- Navigation / layout ---
   const [view, setView] = useState('overview')
   const [mobileNav, setMobileNav] = useState(false)
@@ -204,6 +207,8 @@ export default function MainPage() {
           )}
 
           {view === 'goals' && <GoalsView />}
+
+          {view === 'assistant' && <AssistantView {...assistant} />}
         </div>
 
         <BottomNav view={view} go={go} onCapture={() => setCaptureOpen(true)} />
