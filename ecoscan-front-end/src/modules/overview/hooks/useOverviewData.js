@@ -1,4 +1,3 @@
-// modules/overview/useOverviewData.js
 'use client'
 import { useEffect, useState } from 'react'
 
@@ -16,12 +15,16 @@ export function useOverviewData() {
     async function load() {
       try {
         const [histRes, objRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/energy/historiques-performance/`, { headers: authHeaders() }),
-          fetch(`${API_BASE_URL}/energy/objectifs/`, { headers: authHeaders() }),
+          // 🟢 CORRECTION : Remplacement de /energy/ par /energies/ pour correspondre à Django
+          fetch(`${API_BASE_URL}/energies/historiques-performance/`, { headers: authHeaders() }),
+          fetch(`${API_BASE_URL}/energies/objectifs/`, { headers: authHeaders() }),
         ])
+        
         if (!histRes.ok || !objRes.ok) throw new Error('Impossible de charger les données énergétiques.')
+        
         const historique = await histRes.json()
         const objectifs = await objRes.json()
+        
         if (!cancelled) setState({
           loading: false, error: null,
           historique: historique.results ?? historique,
