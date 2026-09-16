@@ -623,3 +623,10 @@ button:focus-visible, input:focus-visible { outline: 3px solid color-mix(in srgb
 .action-toast svg { color:#b8d934; }
 .theme-dark .action-toast { background:#123553; color:#f3fbfd; border-color:#58b8cb; }
 .theme-dark .action-toast svg { color:#b8d934; }
+
+@media (min-width: 1024px) {
+  .mobile-close,
+  .menu-button {
+    display: none !important;
+  }
+}
