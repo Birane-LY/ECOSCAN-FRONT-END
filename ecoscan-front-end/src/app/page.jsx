@@ -9,6 +9,7 @@ import { useOverviewData } from '@/modules/overview/hooks/useOverviewData'
 import { CaptureModal } from '@/components/layout/CaptureModal'
 import { AnalysesView } from '@/modules/analyses/components/AnalysesView'
 import { DataCenterView } from '@/modules/data-center/components/DataCenterView' 
+import { GoalsView } from '@/modules/goals/components/GoalsView'
 
 import {
   AppShell,
@@ -201,6 +202,8 @@ export default function MainPage() {
           {view === 'data' && (
             <DataCenterView setDrawer={setDrawer} />
           )}
+
+          {view === 'goals' && <GoalsView />}
         </div>
 
         <BottomNav view={view} go={go} onCapture={() => setCaptureOpen(true)} />
