@@ -5,26 +5,9 @@ import { ArrowUpRight, CloudUpload, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/ui'
 import { DataHealthBanner } from '@/modules/data-center/components/DataHealthBanner'
 import { FileSourceList } from '@/modules/data-center/components/FileSourceList'
-import { UploadModal } from '@/modules/data-center/components/UploadModal'
-import { useDataSources } from '@/modules/data-center/hooks/useDataSource'
-import { useFileSources } from '@/modules/data-center/hooks/useFileSources'
 
-export function DataCenterView({ setDrawer }) {
-  const { files: liveFiles, reload } = useFileSources()
-  const {
-    uploadOpen, uploadStage, fileRef,
-    openUpload, closeUpload, processUpload, finishUpload,
-  } = useDataSources()
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0]
-    if (file) processUpload(file)
-  }
-
-  const handleFinish = () => {
-    finishUpload(() => reload()) // recharge la vraie liste après l'import
-  }
-
+export function DataCenterView({ files, filesLoading, filesError, openUpload, setDrawer }) {
   return (
     <>
       <PageHeader
@@ -39,7 +22,7 @@ export function DataCenterView({ setDrawer }) {
         }
       />
 
-      <DataHealthBanner />
+      <DataHealthBanner files={files} />
 
       <section className="data-section">
         <div className="panel-heading">
@@ -47,32 +30,18 @@ export function DataCenterView({ setDrawer }) {
             <p className="eyebrow">SOURCES RÉCENTES</p>
             <h2>Fichiers importés</h2>
           </div>
-          <button className="quiet-button">
+          <button className="quiet-button" onClick={() => setDrawer('manage-sources')}>
             Gérer les sources <ArrowUpRight size={14} />
           </button>
         </div>
 
-        <FileSourceList files={liveFiles} onSelectFile={(id) => setDrawer(`import-${id}`)} />
+        {filesLoading && <p className="drawer-lead">Chargement…</p>}
+        {filesError && <p className="drawer-lead">Erreur : {filesError}</p>}
+        {!filesLoading && !filesError && files.length === 0 && (
+          <p className="drawer-lead">Aucun fichier importé pour le moment.</p>
+        )}
+        <FileSourceList files={files} onSelectFile={(id) => setDrawer(`import-${id}`)} />
       </section>
-
-      <section className="drop-banner" onClick={openUpload}>
-        <CloudUpload size={20} />
-        <div>
-          <strong>Ajoutez une nouvelle source</strong>
-          <span>CSV, XLSX ou JSON · déposez vos fichiers ici</span>
-        </div>
-        <Plus size={18} />
-      </section>
-
-      {uploadOpen && (
-        <UploadModal
-          stage={uploadStage}
-          fileRef={fileRef}
-          onProcess={handleFileChange}
-          onFinish={handleFinish}
-          onClose={closeUpload}
-        />
-      )}
     </>
   )
 }
