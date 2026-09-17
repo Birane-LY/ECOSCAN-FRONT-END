@@ -10,14 +10,14 @@ function toCardShape(resultat) {
 
   return {
     id: resultat.id,
-    title: resultat.code_metrique?.replace(/_/g, ' ') || 'Résultat métrique',
+    title: resultat.code_metrique?.replace(/_/g, ' '),
     type: resultat.unite || '—',
     date: resultat.periode_fin ? new Date(resultat.periode_fin).toLocaleDateString('fr-FR') : '—',
+    dateRaw: resultat.periode_fin, // ← ajouté, pour le tri
     status,
     score: confiance ?? 0,
   }
 }
-
 export function useAnalysesData() {
   const [state, setState] = useState({ loading: true, error: null, analyses: [] })
 
