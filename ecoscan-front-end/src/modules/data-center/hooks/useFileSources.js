@@ -3,9 +3,14 @@ import { useEffect, useState, useCallback } from 'react'
 import { apiGet } from '@/lib/apiClient'
 
 const STATUS_LABELS = {
-  TERMINE: 'Prêt', REVUE_REQUISE: 'À vérifier', INCOHERENT: 'À vérifier',
-  HORS_PERIMETRE: 'Rejeté', ECHOUE: 'Rejeté', EN_COURS: 'En cours',
-  EN_ATTENTE: 'En attente', ANNULE: 'Annulé',
+  TERMINE: 'Prêt',
+  REVUE_REQUISE: 'À vérifier',
+  INCOHERENT: 'À vérifier',
+  HORS_PERIMETRE: 'Rejeté',
+  ECHOUE: 'Rejeté',
+  EN_COURS: 'En cours',
+  EN_ATTENTE: 'En attente',
+  ANNULE: 'Annulé',
 }
 
 function toFileShape(importItem) {
@@ -25,7 +30,7 @@ export function useFileSources() {
   const reload = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
-      const imports = await apiGet('/energy/imports/')
+      const imports = await apiGet('/energies/imports/')   // ← singulier "/energy/" est le bug
       setState({ loading: false, error: null, files: imports.map(toFileShape) })
     } catch (err) {
       setState({ loading: false, error: err.message, files: [] })
