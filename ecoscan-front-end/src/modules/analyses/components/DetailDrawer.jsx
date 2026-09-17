@@ -12,9 +12,11 @@ const STATIC_TITLES = {
   'new-analysis': "Nouvelle analyse",
 }
 
+
 export function DetailDrawer({ type, close, complete }) {
   const [resultat, setResultat] = useState(null)
   const [importItem, setImportItem] = useState(null)
+  const [sources, setSources] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -23,23 +25,50 @@ export function DetailDrawer({ type, close, complete }) {
   const importId = isImportRef ? type.replace('import-', '') : null
   const isOpportunities = type === 'opportunities'
   const isAllActions = type === 'all-actions'
+  const isManageSources = type === 'manage-sources'
 
+  // Fetch metrics & import data
   useEffect(() => {
-    setResultat(null); setImportItem(null); setError(null)
+    if (!type) return
+    setResultat(null)
+    setImportItem(null)
+    setError(null)
+
     if (isAnalysisId) {
       setLoading(true)
-      apiGet(`/analysis/resultats-metriques/${type}/`).then(setResultat).catch((e) => setError(e.message)).finally(() => setLoading(false))
-    } else if (isImportRef && importId) {
+      apiGet(`/analyses/resultats-metriques/${type}/`)
+        .then(setResultat)
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false))
+        } else if (isImportRef && importId) {
       setLoading(true)
-      apiGet(`/energy/imports/${importId}/`).then(setImportItem).catch((e) => setError(e.message)).finally(() => setLoading(false))
+      apiGet(`/energies/imports/${importId}/`)   // ← corrigé
+        .then(setImportItem)
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false))
     }
   }, [type, isAnalysisId, isImportRef, importId])
+
+  // Fetch energy sources
+  useEffect(() => {
+    if (isManageSources) {
+      apiGet('/energies/sources-donnees/')
+        .then(setSources)
+        .catch(() => setSources([]))
+    }
+  }, [isManageSources])
 
   if (!type) return null
 
   return (
     <div className="drawer-backdrop" onClick={close}>
-      <aside className="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" onClick={(e) => e.stopPropagation()}>
+      <aside 
+        className="detail-drawer" 
+        role="dialog" 
+        aria-modal="true" 
+        aria-labelledby="drawer-title" 
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="drawer-head">
           <button className="icon-button" onClick={close} aria-label="Fermer"><X /></button>
           <span className="eyebrow">DÉTAIL</span>
@@ -52,11 +81,32 @@ export function DetailDrawer({ type, close, complete }) {
           {loading && <p className="drawer-lead">Chargement…</p>}
           {error && <p className="drawer-lead">Erreur : {error}</p>}
 
+          {/* Manage Data Sources Content */}
+          {isManageSources && (
+            <>
+              <h2 id="drawer-title">Sources de données</h2>
+              <p className="drawer-lead">Toutes les sources configurées pour votre organisation.</p>
+              <div className="drawer-section" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {sources.map((s) => (
+                  <div key={s.id} className="owner-row">
+                    <span>
+                      <strong>{s.nom}</strong>
+                      <small>{s.type} · {s.frequence} · {s.statut_synchronisation}</small>
+                    </span>
+                  </div>
+                ))}
+                {sources.length === 0 && <p className="drawer-lead">Aucune source configurée.</p>}
+              </div>
+            </>
+          )}
+
+          {/* Metric & Import Results */}
           {!loading && !error && isAnalysisId && resultat && <ResultatMetriqueContent resultat={resultat} />}
           {!loading && !error && isImportRef && importItem && <ImportContent importItem={importItem} />}
           {isOpportunities && <OpportunitiesContent onClose={close} />}
           {isAllActions && <AllActionsContent />}
 
+          {/* Static View Fallbacks */}
           {!loading && !error && STATIC_TITLES[type] && (
             <>
               <h2 id="drawer-title">{STATIC_TITLES[type]}</h2>
@@ -64,7 +114,7 @@ export function DetailDrawer({ type, close, complete }) {
             </>
           )}
 
-          {!loading && !error && !isAnalysisId && !isImportRef && !isOpportunities && !isAllActions && !STATIC_TITLES[type] && (
+          {!loading && !error && !isAnalysisId && !isImportRef && !isOpportunities && !isAllActions && !isManageSources && !STATIC_TITLES[type] && (
             <>
               <h2 id="drawer-title">{type}</h2>
               <p className="drawer-lead">Aucun détail disponible pour cet élément.</p>
@@ -72,8 +122,8 @@ export function DetailDrawer({ type, close, complete }) {
           )}
         </div>
 
-        {/* Le footer générique ne sert plus qu'aux écrans qui n'ont pas leur propre action */}
-        {!isAnalysisId && !isImportRef && !isOpportunities && !isAllActions && (
+        {/* Generic Action Footer */}
+        {!isAnalysisId && !isImportRef && !isOpportunities && !isAllActions && !isManageSources && (
           <div className="drawer-footer">
             <button className="secondary-button" onClick={close}>Plus tard</button>
             <button className="primary-button" onClick={complete}>
@@ -198,7 +248,7 @@ function AllActionsContent() {
   useEffect(() => {
     // Toutes les recommandations (y compris DECIDEE), juste pour résoudre les titres —
     // séparé de useRecommandations() qui exclut volontairement les DECIDEE.
-    apiGet('/analysis/recommandations/')
+    apiGet('/analyses/recommandations/')
       .then((all) => {
         const map = {}
         all.forEach((r) => { map[r.id] = r.titre })
