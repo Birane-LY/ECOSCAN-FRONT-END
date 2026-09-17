@@ -8,7 +8,7 @@ export function useDecisions() {
   const reload = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
-      const decisions = await apiGet('/analysis/decisions/')
+      const decisions = await apiGet('/analyses/decisions/')
       setState({ loading: false, error: null, decisions })
     } catch (err) {
       setState({ loading: false, error: err.message, decisions: [] })
