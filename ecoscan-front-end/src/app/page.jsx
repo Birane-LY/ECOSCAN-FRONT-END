@@ -8,10 +8,13 @@ import { OverviewView } from '@/modules/overview/components/OverviewView'
 import { useOverviewData } from '@/modules/overview/hooks/useOverviewData'
 import { CaptureModal } from '@/components/layout/CaptureModal'
 import { AnalysesView } from '@/modules/analyses/components/AnalysesView'
-import { DataCenterView } from '@/modules/data-center/components/DataCenterView' 
+import { DataCenterView } from '@/modules/data-center/components/DataCenterView'
 import { GoalsView } from '@/modules/goals/components/GoalsView'
 import { AssistantView } from '@/modules/assistant/components/AssistantView'
 import { useAssistant } from '@/modules/assistant/hooks/useAssistant'
+import { useDataSources } from '@/modules/data-center/hooks/useDataSource'
+import { useFileSources } from '@/modules/data-center/hooks/useFileSources'
+import { UploadModal } from '@/modules/data-center/components/UploadModal'
 
 import {
   AppShell,
@@ -65,7 +68,8 @@ export default function MainPage() {
     login, logout, switchOrganisation, switchRole, can,
   } = useAuth()
 
-   const assistant = useAssistant()
+  const assistant = useAssistant()
+
   // --- Navigation / layout ---
   const [view, setView] = useState('overview')
   const [mobileNav, setMobileNav] = useState(false)
@@ -77,14 +81,27 @@ export default function MainPage() {
     setMobileNav(false)
   }
 
-  // --- Upload / progression ---
-  const [completed, setCompleted] = useState([])
-  const openUpload = () => setDrawer('upload')
+  // --- Import de données (flux réel) ---
+  const dataSource = useDataSources()
+  const fileSources = useFileSources()
+
+  const handleFinishUpload = () => {
+    dataSource.finishUpload(() => fileSources.reload())
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) dataSource.processUpload(file)
+  }
+
+  // openUpload devient LE point d'entrée unique, partagé partout (sidebar, overview, data center)
+  const openUpload = dataSource.openUpload
 
   // --- Données réelles de la vue d'ensemble ---
   const { loading: overviewLoading, error: overviewError, historique, objectifs } = useOverviewData()
   const [period, setPeriod] = useState('mois')
   const [point, setPoint] = useState(null)
+  const [completed, setCompleted] = useState([])
 
   // --- Palette de commandes ---
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -181,7 +198,7 @@ export default function MainPage() {
         />
 
         <div className="content-wrap">
-           {view === 'overview' && (
+          {view === 'overview' && (
             <OverviewView
               user={currentProfile}
               currentDate={new Date().toLocaleDateString('fr-FR', {
@@ -197,13 +214,19 @@ export default function MainPage() {
               openUpload={openUpload} ask={handleAskWithNav} setDrawer={setDrawer}
             />
           )}
-          
+
           {view === 'analyses' && (
             <AnalysesView setDrawer={setDrawer} />
           )}
 
           {view === 'data' && (
-            <DataCenterView setDrawer={setDrawer} />
+            <DataCenterView
+              files={fileSources.files}
+              filesLoading={fileSources.loading}
+              filesError={fileSources.error}
+              openUpload={openUpload}
+              setDrawer={setDrawer}
+            />
           )}
 
           {view === 'goals' && <GoalsView />}
@@ -237,7 +260,7 @@ export default function MainPage() {
         goAssistant={() => go('assistant')}
       />
 
-      {/* Drawer */}
+      {/* Drawer générique (hors upload, désormais géré par UploadModal) */}
       <DetailDrawer
         type={drawer}
         close={() => setDrawer(null)}
@@ -259,6 +282,17 @@ export default function MainPage() {
         onClose={() => setCaptureOpen(false)}
         onConfirm={handleCaptureConfirm}
       />
+
+      {dataSource.uploadOpen && (
+        <UploadModal
+          stage={dataSource.uploadStage}
+          result={dataSource.result}
+          fileRef={dataSource.fileRef}
+          onProcess={dataSource.processUpload}
+          onFinish={() => dataSource.finishUpload(() => fileSources.reload())}
+          onClose={dataSource.closeUpload}
+        />
+      )}
     </AppShell>
   )
 }
