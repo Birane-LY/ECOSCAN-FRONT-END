@@ -15,7 +15,7 @@ import { useAssistant } from '@/modules/assistant/hooks/useAssistant'
 import { useDataSources } from '@/modules/data-center/hooks/useDataSource'
 import { useFileSources } from '@/modules/data-center/hooks/useFileSources'
 import { UploadModal } from '@/modules/data-center/components/UploadModal'
-
+import { BusinessToolsView } from '@/modules/business-tools/components/BusinessToolsView'
 import {
   AppShell,
   Sidebar,
@@ -232,6 +232,10 @@ export default function MainPage() {
           {view === 'goals' && <GoalsView />}
 
           {view === 'assistant' && <AssistantView {...assistant} />}
+
+          {view === 'features' && (
+            <BusinessToolsView role={activeRole} setDrawer={setDrawer} />
+          )}
         </div>
 
         <BottomNav view={view} go={go} onCapture={() => setCaptureOpen(true)} />
