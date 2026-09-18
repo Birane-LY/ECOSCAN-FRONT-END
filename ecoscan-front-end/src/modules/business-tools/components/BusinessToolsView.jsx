@@ -21,7 +21,7 @@ export function BusinessToolsView({ role, setDrawer }) {
       <PageHeader
         eyebrow="OUTILS MÉTIER"
         title="Outils opérationnels pour piloter vos consommations"
-        description="Configurez vos rituels de relève, simulez vos retours sur investissement et éditez vos livrables officiels."
+        subtitle="Configurez vos rituels de relève, simulez vos retours sur investissement et éditez vos livrables officiels."
       />
 
       <div className="tools-tabs">
