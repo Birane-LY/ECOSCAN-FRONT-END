@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/modules/auth/hooks/useAuth'
 import { LoginScreen } from '@/modules/auth/components/LoginScreen'
@@ -16,6 +16,9 @@ import { useDataSources } from '@/modules/data-center/hooks/useDataSource'
 import { useFileSources } from '@/modules/data-center/hooks/useFileSources'
 import { UploadModal } from '@/modules/data-center/components/UploadModal'
 import { BusinessToolsView } from '@/modules/business-tools/components/BusinessToolsView'
+import { SettingsView } from '@/modules/settings/components/SettingsView'
+import { useCommandPaletteShortcut } from '@/hooks/useCommandPaletteShortcut'
+import { usePreferences } from '@/modules/settings/hooks/usePreferences'
 import {
   AppShell,
   Sidebar,
@@ -25,8 +28,7 @@ import {
   NotificationsPopover,
   HelpModal,
   DetailDrawer,
-} from '@/components/layout' // Ajustez le chemin selon votre structure d'export index.js
-
+} from '@/components/layout'
 import { ActionToast } from '@/components/ui'
 
 const VIEW_TITLES = {
@@ -69,35 +71,43 @@ export default function MainPage() {
   } = useAuth()
 
   const assistant = useAssistant()
+  const { preferences, updatePreferences } = usePreferences()
 
-  // --- Navigation / layout ---
+  // --- Navigation & Layout ---
   const [view, setView] = useState('overview')
   const [mobileNav, setMobileNav] = useState(false)
-  const [darkMode, setDarkMode] = useState(false)
-  const [drawer, setDrawer] = useState(null) // null | 'profile-switch' | ...autres types de DetailDrawer
+  const [drawer, setDrawer] = useState(null)
 
-  const go = (nextView) => {
+  // --- Thème (Synchronisation réactive) ---
+  const [darkMode, setDarkMode] = useState(false)
+
+  // Mettre à jour l'état local du thème à chaque fois que la préférence serveur/hook évolue
+  useEffect(() => {
+    if (preferences?.theme) {
+      setDarkMode(preferences.theme === 'SOMBRE')
+    }
+  }, [preferences?.theme])
+
+  // Bascule du thème compatible Topbar & API
+  const handleToggleDarkMode = (newVal) => {
+    const isDark = typeof newVal === 'function' ? newVal(darkMode) : newVal
+    setDarkMode(isDark)
+    if (updatePreferences) {
+      updatePreferences({ theme: isDark ? 'SOMBRE' : 'CLAIR' })
+    }
+  }
+
+  const go = useCallback((nextView) => {
     setView(nextView)
     setMobileNav(false)
-  }
+  }, [])
 
-  // --- Import de données (flux réel) ---
+  // --- Import de données ---
   const dataSource = useDataSources()
   const fileSources = useFileSources()
-
-  const handleFinishUpload = () => {
-    dataSource.finishUpload(() => fileSources.reload())
-  }
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0]
-    if (file) dataSource.processUpload(file)
-  }
-
-  // openUpload devient LE point d'entrée unique, partagé partout (sidebar, overview, data center)
   const openUpload = dataSource.openUpload
 
-  // --- Données réelles de la vue d'ensemble ---
+  // --- Données de la vue d'ensemble ---
   const { loading: overviewLoading, error: overviewError, historique, objectifs } = useOverviewData()
   const [period, setPeriod] = useState('mois')
   const [point, setPoint] = useState(null)
@@ -106,6 +116,7 @@ export default function MainPage() {
   // --- Palette de commandes ---
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [paletteQuery, setPaletteQuery] = useState('')
+  useCommandPaletteShortcut(setPaletteOpen)
 
   // --- Notifications ---
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS)
@@ -114,6 +125,7 @@ export default function MainPage() {
     () => notifications.filter((n) => n.unread).length,
     [notifications]
   )
+
   const markAllRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
   }
@@ -123,36 +135,37 @@ export default function MainPage() {
     )
   }
 
-  // --- Aide ---
+  // --- Modales d'aide & Capture ---
   const [helpOpen, setHelpOpen] = useState(false)
-
-  // --- Capture mobile (caméra) ---
   const [captureOpen, setCaptureOpen] = useState(false)
+
+  // --- Toasts d'action ---
+  const [actionToast, setActionToast] = useState(null)
+  const announceAction = useCallback((message) => {
+    setActionToast(message)
+    window.clearTimeout(announceAction._t)
+    announceAction._t = window.setTimeout(() => setActionToast(null), 3000)
+  }, [])
+
   const handleCaptureConfirm = ({ kind, file }) => {
     announceAction(`${kind === 'invoice' ? 'Facture' : 'Consommation'} capturée : ${file.name}`)
   }
 
-  // --- Toast d'action ---
-  const [actionToast, setActionToast] = useState(null)
-  const announceAction = (message) => {
-    setActionToast(message)
-    // auto-dismiss après quelques secondes
-    window.clearTimeout(announceAction._t)
-    announceAction._t = window.setTimeout(() => setActionToast(null), 3000)
-  }
-
   // --- Assistant IA depuis la vue d'ensemble ---
   const handleAskWithNav = (question) => {
+    if (question && assistant.sendMessage) {
+      assistant.sendMessage(question)
+    }
     go('assistant')
-    // TODO: transmettre `question` à la vue Assistant (contexte partagé, store, etc.)
   }
 
+  // Redirection SuperAdmin
   useEffect(() => {
     if (authenticated && isSuperAdmin) router.replace('/admin')
   }, [authenticated, isSuperAdmin, router])
 
   if (!authenticated) return <LoginScreen onLogin={login} />
-  if (isSuperAdmin) return null // redirection vers /admin en cours
+  if (isSuperAdmin) return null
 
   if (orgLoading) {
     return (
@@ -176,6 +189,51 @@ export default function MainPage() {
     )
   }
 
+  // Rendu modulaire de la vue courante
+  const renderView = () => {
+    switch (view) {
+      case 'overview':
+        return (
+          <OverviewView
+            user={currentProfile}
+            currentDate={new Date().toLocaleDateString('fr-FR', {
+              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+            }).toUpperCase()}
+            briefingData={{ historique, loading: overviewLoading, error: overviewError }}
+            insightData={{ historique, objectifs, loading: overviewLoading }}
+            decisionsData={objectifs}
+            assistantData={{}}
+            period={period} setPeriod={setPeriod}
+            point={point} setPoint={setPoint}
+            completed={completed} setCompleted={setCompleted}
+            openUpload={openUpload} ask={handleAskWithNav} setDrawer={setDrawer}
+          />
+        )
+      case 'analyses':
+        return <AnalysesView setDrawer={setDrawer} />
+      case 'data':
+        return (
+          <DataCenterView
+            files={fileSources.files}
+            filesLoading={fileSources.loading}
+            filesError={fileSources.error}
+            openUpload={openUpload}
+            setDrawer={setDrawer}
+          />
+        )
+      case 'goals':
+        return <GoalsView />
+      case 'assistant':
+        return <AssistantView {...assistant} />
+      case 'features':
+        return <BusinessToolsView role={activeRole} setDrawer={setDrawer} />
+      case 'settings':
+        return <SettingsView preferences={preferences} updatePreferences={updatePreferences} />
+      default:
+        return null
+    }
+  }
+
   return (
     <AppShell darkMode={darkMode} onAction={announceAction}>
       <Sidebar
@@ -191,51 +249,14 @@ export default function MainPage() {
           setMobileNav={setMobileNav}
           setPaletteOpen={setPaletteOpen}
           darkMode={darkMode}
-          setDarkMode={setDarkMode}
+          setDarkMode={handleToggleDarkMode}
           unreadCount={unreadCount}
           setNotificationsOpen={setNotificationsOpen}
           setHelpOpen={setHelpOpen}
         />
 
         <div className="content-wrap">
-          {view === 'overview' && (
-            <OverviewView
-              user={currentProfile}
-              currentDate={new Date().toLocaleDateString('fr-FR', {
-                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-              }).toUpperCase()}
-              briefingData={{ historique, loading: overviewLoading, error: overviewError }}
-              insightData={{ historique, objectifs, loading: overviewLoading }}
-              decisionsData={objectifs}
-              assistantData={{}}
-              period={period} setPeriod={setPeriod}
-              point={point} setPoint={setPoint}
-              completed={completed} setCompleted={setCompleted}
-              openUpload={openUpload} ask={handleAskWithNav} setDrawer={setDrawer}
-            />
-          )}
-
-          {view === 'analyses' && (
-            <AnalysesView setDrawer={setDrawer} />
-          )}
-
-          {view === 'data' && (
-            <DataCenterView
-              files={fileSources.files}
-              filesLoading={fileSources.loading}
-              filesError={fileSources.error}
-              openUpload={openUpload}
-              setDrawer={setDrawer}
-            />
-          )}
-
-          {view === 'goals' && <GoalsView />}
-
-          {view === 'assistant' && <AssistantView {...assistant} />}
-
-          {view === 'features' && (
-            <BusinessToolsView role={activeRole} setDrawer={setDrawer} />
-          )}
+          {renderView()}
         </div>
 
         <BottomNav view={view} go={go} onCapture={() => setCaptureOpen(true)} />
@@ -244,6 +265,7 @@ export default function MainPage() {
       {/* Popovers & Modales */}
       <NotificationsPopover
         open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
         notifications={notifications}
         unreadCount={unreadCount}
         markAllRead={markAllRead}
@@ -264,7 +286,6 @@ export default function MainPage() {
         goAssistant={() => go('assistant')}
       />
 
-      {/* Drawer générique (hors upload, désormais géré par UploadModal) */}
       <DetailDrawer
         type={drawer}
         close={() => setDrawer(null)}
