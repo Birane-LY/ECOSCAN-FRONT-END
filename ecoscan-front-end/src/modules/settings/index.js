@@ -1,0 +1,5 @@
+export { SettingsView } from './components/SettingsView'
+export { ProfileSettings } from './components/ProfileSettings'
+export { SecuritySettings } from './components/SecuritySettings'
+export { NotificationSettings } from './components/NotificationSettings'
+export { AppearanceSettings } from './components/AppearanceSettings'
