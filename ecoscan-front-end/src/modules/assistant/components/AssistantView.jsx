@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Sparkles } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import { PageHeader } from '@/components/ui'
 import { ASSISTANT_SUGGESTIONS } from '@/modules/assistant/hooks/useAssistant'
 import { ChatBubble } from '@/modules/assistant/components/ChatBubble'
@@ -14,18 +14,14 @@ export function AssistantView({ messages, input, setInput, thinking, activeSugge
       <PageHeader
         eyebrow="COPILOTE ÉNERGIE"
         title="Assistant IA"
-        subtitle="Une conversation qui se transforme en décisions concrètes."
+        subtitle="Posez une question, obtenez une réponse fondée sur vos données."
         action={<span className="online-status"><i />En ligne maintenant</span>}
       />
 
       <section className="assistant-intro">
-        <div className="assistant-orbit">
-          <div className="assistant-orbit-ring" />
-          <div className="ai-avatar large"><Sparkles size={24} /></div>
-        </div>
         <div>
           <p className="eyebrow">VOTRE COPILOTE DU JOUR</p>
-          <h2>On regarde votre journée ensemble ?</h2>
+          <h2>Interrogez vos données énergétiques</h2>
           <p>Posez une question — je réponds à partir de ce qui est réellement enregistré pour votre organisation.</p>
         </div>
       </section>
@@ -33,7 +29,7 @@ export function AssistantView({ messages, input, setInput, thinking, activeSugge
       <section className="assistant-workspace">
         <div className="conversation">
           <div className="conversation-head">
-            <div className="ai-avatar"><Sparkles size={17} /></div>
+            <div className="ai-avatar"><Zap size={17} /></div>
             <div>
               <strong>EcoScan IA</strong>
               <span>Analyse vos données en contexte</span>
@@ -49,7 +45,7 @@ export function AssistantView({ messages, input, setInput, thinking, activeSugge
                 className={activeSuggestion === suggestion ? 'selected' : ''}
                 onClick={() => sendPrompt(suggestion)}
               >
-                <Sparkles size={13} />{suggestion}
+                {suggestion}
               </button>
             ))}
           </div>
