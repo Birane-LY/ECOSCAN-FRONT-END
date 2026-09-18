@@ -8,8 +8,8 @@ export function FileSourceList({ files, onSelectFile }) {
       {files.map((file) => (
         <button
           className="file-row"
-          key={file.name}
-          onClick={() => onSelectFile(file.name)}
+          key={file.id}
+          onClick={() => onSelectFile(file.id)}
         >
           <span className="file-icon">
             <FileSpreadsheet size={17} />
