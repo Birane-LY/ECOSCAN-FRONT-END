@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { ArrowUpRight, Check, CloudUpload, FileSpreadsheet, Sparkles, Upload, X } from 'lucide-react'
+import { ArrowUpRight, Check, CloudUpload, FileSpreadsheet, Gauge, Upload, X } from 'lucide-react'
 
 const STATUTS_ECHEC = ['ECHOUE', 'HORS_PERIMETRE', 'INCOHERENT']
 
@@ -28,7 +28,7 @@ export function UploadModal({ stage, fileRef, onProcess, onFinish, onClose, resu
               <CloudUpload size={28} />
             </div>
             <p className="eyebrow">NOUVELLE SOURCE</p>
-            <h2 id="upload-title">Faites parler vos données.</h2>
+            <h2 id="upload-title">Importer une source de données</h2>
             <p>Déposez un fichier de consommation pour lancer une nouvelle analyse.</p>
             <button className="drop-zone" onClick={() => fileRef.current?.click()}>
               <Upload size={21} />
@@ -50,10 +50,10 @@ export function UploadModal({ stage, fileRef, onProcess, onFinish, onClose, resu
         ) : stage < 3 ? (
           <>
             <div className="processing-icon">
-              <Sparkles size={25} />
+              <CloudUpload size={25} />
             </div>
             <p className="eyebrow">ANALYSE EN COURS</p>
-            <h2 id="upload-title">On met de l’ordre dans vos données.</h2>
+            <h2 id="upload-title">Lecture du fichier en cours</h2>
             <div className="process-steps">
               <span className="complete">
                 <Check size={13} />
@@ -64,8 +64,8 @@ export function UploadModal({ stage, fileRef, onProcess, onFinish, onClose, resu
                 Lecture des données
               </span>
               <span>
-                <Sparkles size={13} />
-                Détection des leviers
+                <Gauge size={13} />
+                Vérification qualité
               </span>
             </div>
             <div className="upload-progress">
@@ -97,7 +97,7 @@ export function UploadModal({ stage, fileRef, onProcess, onFinish, onClose, resu
             </div>
             <p className="eyebrow">{revueRequise ? 'REVUE REQUISE' : 'ANALYSE PRÊTE'}</p>
             <h2 id="upload-title">
-              {revueRequise ? 'Une vérification manuelle est recommandée.' : 'Vos insights sont prêts.'}
+              {revueRequise ? 'Une vérification manuelle est recommandée.' : 'Le fichier est prêt.'}
             </h2>
             <p>
               {result?.nom_fichier && <>{result.nom_fichier} · </>}
