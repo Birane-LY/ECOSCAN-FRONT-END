@@ -8963,6 +8963,125 @@ input:focus-visible {
 }
 .theme-btn.active { color: var(--primary); background: var(--card); box-shadow: 0 2px 5px rgba(33,63,43,.08); }
 
+/* Update SuperAdmin console styles to share palette tokens */
+.admin-shell {
+  min-height: 100vh;
+  display: flex;
+  background:
+    radial-gradient(
+      circle at 85% 5%,
+      rgba(31, 145, 166, 0.12),
+      transparent 32%
+    ),
+    linear-gradient(135deg, #f3f8fc 0%, #e8f1f6 50%, #dce9f0 100%);
+  color: var(--foreground);
+}
+
+.admin-sidebar {
+  width: 252px;
+  flex: 0 0 252px;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 14px 18px;
+  background: #091e38;
+  color: #e0f0fa;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 24px;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.06em;
+  color: #ffffff;
+}
+
+.admin-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--brand-teal);
+  color: #07182f;
+  font-weight: 800;
+}
+
+.admin-badge {
+  margin-left: auto;
+  border: 1px solid rgba(66, 184, 176, 0.3);
+  border-radius: 5px;
+  padding: 3px 6px;
+  color: #a8edf1;
+  background: var(--surface-teal);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  font-weight: 750;
+}
+
+.admin-context {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-context-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--brand-cyan);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+.admin-topbar {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 38px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(243, 248, 252, 0.85);
+  backdrop-filter: blur(14px);
+}
+
+.admin-modal {
+  position: relative;
+  width: min(100%, 520px);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.admin-toast {
+  position: fixed;
+  right: 25px;
+  bottom: 24px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 10px;
+  background: var(--brand-blue);
+  color: #ffffff;
+  box-shadow: var(--shadow);
+  font-size: 11px;
+  font-weight: 600;
+}
+
 @media (max-width: 720px) {
   .settings-grid { grid-template-columns: 1fr; }
   .setting-row { flex-direction: column; align-items: flex-start; gap: 10px; }
