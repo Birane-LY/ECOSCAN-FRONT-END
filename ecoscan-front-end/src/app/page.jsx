@@ -19,6 +19,7 @@ import { BusinessToolsView } from '@/modules/business-tools/components/BusinessT
 import { SettingsView } from '@/modules/settings/components/SettingsView'
 import { useCommandPaletteShortcut } from '@/hooks/useCommandPaletteShortcut'
 import { usePreferences } from '@/modules/settings/hooks/usePreferences'
+import { OnboardingWizard } from '@/modules/onboarding/components/OnboardingWizard'
 import {
   AppShell,
   Sidebar,
@@ -175,19 +176,24 @@ export default function MainPage() {
     )
   }
 
-  if (orgError || !activeOrganisation) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center">
-        <div>
-          <h1 className="text-lg font-bold mb-2">Aucune organisation associée</h1>
-          <p className="text-sm text-slate-500 mb-4">
-            {orgError || "Votre compte n'est rattaché à aucune organisation pour le moment."}
-          </p>
-          <button className="text-xs text-rose-600 underline" onClick={logout}>Se déconnecter</button>
-        </div>
-      </div>
-    )
+
+
+if (orgError || !activeOrganisation) {
+  if (activeRole === 'ADMIN_ORGANISATION') {
+    return <OnboardingWizard onComplete={() => window.location.reload()} />
   }
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 text-center">
+      <div>
+        <h1 className="text-lg font-bold mb-2">Aucune organisation associée</h1>
+        <p className="text-sm text-slate-500 mb-4">
+          Votre compte n'est pas encore rattaché à une organisation. Contactez l'administrateur qui vous a invité.
+        </p>
+        <button className="text-xs text-rose-600 underline" onClick={logout}>Se déconnecter</button>
+      </div>
+    </div>
+  )
+}
 
   // Rendu modulaire de la vue courante
   const renderView = () => {
