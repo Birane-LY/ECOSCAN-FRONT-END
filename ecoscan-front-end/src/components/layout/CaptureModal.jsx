@@ -1,332 +1,133 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Camera, Check, ReceiptText, X, Zap } from 'lucide-react'
+import { AlertTriangle, Camera, Check, Loader2, X } from 'lucide-react'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+
+async function envoyerImage(file) {
+  const token = localStorage.getItem('access_token')
+  const formData = new FormData()
+  formData.append('image', file)
+  const res = await fetch(`${API_BASE_URL}/energies/capture-image/`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `Erreur ${res.status}`)
+  }
+  return res.json()
+}
 
 export function CaptureModal({ open, onClose, onConfirm }) {
-  const [captureKind, setCaptureKind] = useState('consumption')
-  const [captureFile, setCaptureFile] = useState(null)
+  const [photo, setPhoto] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [champs, setChamps] = useState(null)
+  const [error, setError] = useState(null)
 
   if (!open) return null
 
-  const handleFile = (event) => {
-    const file = event.target.files?.[0]
-    if (file) setCaptureFile(file)
-  }
+  const reset = () => { setPhoto(null); setPreview(null); setChamps(null); setError(null) }
 
-  const handleClose = () => {
-    setCaptureFile(null)
-    onClose?.()
+  const handleCapture = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhoto(file)
+    setPreview(URL.createObjectURL(file))
+    setAnalyzing(true)
+    setError(null)
+    try {
+      const resultat = await envoyerImage(file)
+      setChamps(resultat.champs)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setAnalyzing(false)
+    }
   }
 
   const handleConfirm = () => {
-    if (!captureFile) return
-    onConfirm?.({ kind: captureKind, file: captureFile })
-    setCaptureFile(null)
-    onClose?.()
+    onConfirm?.({ champs, photo })
+    reset()
+    onClose()
   }
+
+  const handleClose = () => { reset(); onClose() }
 
   return (
     <div className="modal-backdrop" onClick={handleClose}>
-      <section
-        className="capture-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="capture-title"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button className="modal-close" aria-label="Fermer" onClick={handleClose}>
-          <X />
-        </button>
+      <section className="upload-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" aria-label="Fermer" onClick={handleClose}><X /></button>
 
-        <div className="capture-modal-icon">
-          <Camera size={24} />
-        </div>
-        <p className="eyebrow">CAPTURE MOBILE</p>
-        <h2 id="capture-title">Qu&apos;est-ce que vous souhaitez capturer ?</h2>
-        <p className="lead">Utilisez la caméra de votre téléphone ou choisissez une image depuis votre appareil.</p>
+        {!photo ? (
+          <>
+            <div className="upload-icon"><Camera size={28} /></div>
+            <p className="eyebrow">CAPTURE RAPIDE</p>
+            <h2>Photographiez votre compteur ou votre facture.</h2>
+            <p>EcoScan lit automatiquement les index et montants — vous n'aurez qu'à vérifier avant de valider.</p>
+            <button className="drop-zone" onClick={() => document.getElementById('capture-input').click()}>
+              <Camera size={21} />
+              <strong>Ouvrir l'appareil photo</strong>
+              <span>Compteur Woyofal ou facture Senelec</span>
+            </button>
+            <input
+              id="capture-input"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              hidden
+              onChange={handleCapture}
+            />
+          </>
+        ) : (
+          <>
+            <img src={preview} alt="Capture" style={{ width: '100%', borderRadius: 12, marginBottom: 16, maxHeight: 220, objectFit: 'cover' }} />
 
-        <div className="capture-choice-grid">
-          <button
-            type="button"
-            className={captureKind === 'consumption' ? 'selected' : ''}
-            onClick={() => setCaptureKind('consumption')}
-          >
-            <Zap size={18} />
-            <strong>Consommation</strong>
-            <small>Relevé compteur ou Woyofal</small>
-          </button>
-          <button
-            type="button"
-            className={captureKind === 'invoice' ? 'selected' : ''}
-            onClick={() => setCaptureKind('invoice')}
-          >
-            <ReceiptText size={18} />
-            <strong>Facture</strong>
-            <small>Photo ou justificatif énergie</small>
-          </button>
-        </div>
+            {analyzing && (
+              <div className="process-steps">
+                <span className="active"><Loader2 size={13} className="spin" />Lecture de l'image en cours…</span>
+              </div>
+            )}
 
-        <label className="capture-dropzone">
-          <Camera size={20} />
-          <strong>{captureFile ? captureFile.name : 'Ouvrir la caméra'}</strong>
-          <small>{captureFile ? 'Image prête à valider' : 'JPEG, PNG ou PDF · caméra arrière'}</small>
-          <input type="file" accept="image/*,.pdf" capture="environment" onChange={handleFile} />
-        </label>
+            {error && (
+              <div className="drawer-section" style={{ color: 'var(--copper)' }}>
+                <p className="eyebrow"><AlertTriangle size={12} style={{ marginRight: 4 }} />ANALYSE INDISPONIBLE</p>
+                <p>{error}</p>
+                <p style={{ fontSize: 10 }}>Vous pouvez saisir les valeurs manuellement dans le formulaire habituel.</p>
+              </div>
+            )}
 
-        <div className="capture-actions">
-          <button type="button" className="secondary-button" onClick={handleClose}>
-            Annuler
-          </button>
-          <button
-            type="button"
-            className="primary-button"
-            disabled={!captureFile}
-            onClick={handleConfirm}
-          >
-            Valider la capture <Check size={15} />
-          </button>
-        </div>
+            {!analyzing && !error && champs && Object.keys(champs).length === 0 && (
+              <p className="drawer-lead">Aucune donnée lisible sur cette photo — reprenez-la ou saisissez manuellement.</p>
+            )}
+
+            {!analyzing && !error && champs && Object.keys(champs).length > 0 && (
+              <>
+                <p className="eyebrow">CHAMPS DÉTECTÉS — À VÉRIFIER</p>
+                <div className="drawer-metrics" style={{ flexWrap: 'wrap' }}>
+                  {Object.entries(champs).map(([cle, valeur]) => (
+                    <div key={cle}><span>{cle.replace(/_/g, ' ')}</span><strong>{String(valeur)}</strong></div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <button className="secondary-button" onClick={() => { setPhoto(null); setPreview(null); setChamps(null); setError(null) }}>
+                Reprendre la photo
+              </button>
+              {champs && Object.keys(champs).length > 0 && (
+                <button className="primary-button" onClick={handleConfirm}>
+                  <Check size={15} />Utiliser ces valeurs
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </section>
-
-      <style jsx>{`
-        .modal-backdrop {
-          position: fixed;
-          inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-          background: rgba(8, 15, 34, 0.55);
-          backdrop-filter: blur(4px);
-          z-index: 60;
-        }
-
-        .capture-modal {
-          position: relative;
-          width: min(420px, 100%);
-          max-height: 90vh;
-          overflow-y: auto;
-
-          /* --- glassmorphism --- */
-          background: rgba(255, 255, 255, 0.62);
-          border: 1px solid rgba(255, 255, 255, 0.55);
-          backdrop-filter: blur(24px) saturate(180%);
-          -webkit-backdrop-filter: blur(24px) saturate(180%);
-          box-shadow:
-            0 24px 60px rgba(15, 23, 42, 0.25),
-            inset 0 1px 0 rgba(255, 255, 255, 0.6);
-
-          color: #0f172a;
-          border-radius: 22px;
-          padding: 28px 24px 24px;
-        }
-
-        :global(.theme-dark) .capture-modal {
-          background: rgba(17, 24, 39, 0.55);
-          border-color: rgba(255, 255, 255, 0.08);
-          box-shadow:
-            0 24px 60px rgba(0, 0, 0, 0.45),
-            inset 0 1px 0 rgba(255, 255, 255, 0.05);
-          color: #f1f5f9;
-        }
-
-        .modal-close {
-          position: absolute;
-          top: 14px;
-          right: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 32px;
-          height: 32px;
-          border-radius: 10px;
-          border: 1px solid rgba(15, 23, 42, 0.08);
-          background: rgba(255, 255, 255, 0.5);
-          color: inherit;
-          cursor: pointer;
-        }
-
-        :global(.theme-dark) .modal-close {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .capture-modal-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(37, 99, 235, 0.14);
-          color: #2563eb;
-          margin-bottom: 14px;
-          backdrop-filter: blur(6px);
-        }
-
-        :global(.theme-dark) .capture-modal-icon {
-          background: rgba(59, 130, 246, 0.22);
-          color: #60a5fa;
-        }
-
-        .eyebrow {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          color: #475569;
-          margin: 0 0 8px;
-        }
-
-        :global(.theme-dark) .eyebrow {
-          color: #94a3b8;
-        }
-
-        h2 {
-          font-size: 19px;
-          font-weight: 700;
-          margin: 0 0 8px;
-          line-height: 1.3;
-        }
-
-        .lead {
-          font-size: 14px;
-          color: #475569;
-          margin: 0 0 20px;
-          line-height: 1.5;
-        }
-
-        :global(.theme-dark) .lead {
-          color: #94a3b8;
-        }
-
-        .capture-choice-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-          margin-bottom: 16px;
-        }
-
-        .capture-choice-grid button {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 4px;
-          padding: 14px;
-          border-radius: 14px;
-          border: 1px solid rgba(15, 23, 42, 0.08);
-          background: rgba(255, 255, 255, 0.4);
-          backdrop-filter: blur(6px);
-          color: inherit;
-          text-align: left;
-          cursor: pointer;
-          transition: border-color 0.15s ease, background 0.15s ease;
-        }
-
-        :global(.theme-dark) .capture-choice-grid button {
-          border-color: rgba(255, 255, 255, 0.08);
-          background: rgba(255, 255, 255, 0.04);
-        }
-
-        .capture-choice-grid button strong {
-          font-size: 13.5px;
-        }
-
-        .capture-choice-grid button small {
-          font-size: 12px;
-          color: #475569;
-        }
-
-        :global(.theme-dark) .capture-choice-grid button small {
-          color: #94a3b8;
-        }
-
-        .capture-choice-grid button.selected {
-          border-color: #2563eb;
-          background: rgba(37, 99, 235, 0.12);
-        }
-
-        :global(.theme-dark) .capture-choice-grid button.selected {
-          background: rgba(59, 130, 246, 0.18);
-        }
-
-        .capture-dropzone {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          gap: 4px;
-          padding: 22px 16px;
-          border: 1.5px dashed rgba(15, 23, 42, 0.18);
-          border-radius: 14px;
-          background: rgba(255, 255, 255, 0.3);
-          backdrop-filter: blur(6px);
-          cursor: pointer;
-          margin-bottom: 20px;
-          color: inherit;
-        }
-
-        :global(.theme-dark) .capture-dropzone {
-          border-color: rgba(255, 255, 255, 0.14);
-          background: rgba(255, 255, 255, 0.03);
-        }
-
-        .capture-dropzone input {
-          display: none;
-        }
-
-        .capture-dropzone small {
-          color: #475569;
-          font-size: 12px;
-        }
-
-        :global(.theme-dark) .capture-dropzone small {
-          color: #94a3b8;
-        }
-
-        .capture-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-        }
-
-        .primary-button,
-        .secondary-button {
-          padding: 10px 16px;
-          border-radius: 12px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .primary-button {
-          border: none;
-          background: #2563eb;
-          color: #ffffff;
-          box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
-        }
-
-        .primary-button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          box-shadow: none;
-        }
-
-        .secondary-button {
-          border: 1px solid rgba(15, 23, 42, 0.12);
-          background: rgba(255, 255, 255, 0.4);
-          color: inherit;
-          backdrop-filter: blur(6px);
-        }
-
-        :global(.theme-dark) .secondary-button {
-          border-color: rgba(255, 255, 255, 0.12);
-          background: rgba(255, 255, 255, 0.05);
-        }
-      `}</style>
     </div>
   )
 }
