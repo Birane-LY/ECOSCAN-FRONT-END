@@ -63,7 +63,7 @@ export function BusinessToolsView({ role, setDrawer }) {
         </button>
       </div>
 
-      {activeTab === 'woyofal' && <WoyofalTool setDrawer={setDrawer} />}
+        {activeTab === 'woyofal' && <WoyofalTool setDrawer={setDrawer} pendingCapture={pendingCapture} onCaptureConsumed={onCaptureConsumed} />}
       {activeTab === 'roi' && <RoiTool role={role} setDrawer={setDrawer} />}
       {activeTab === 'funding' && <FundingTool setDrawer={setDrawer} />}
       {activeTab === 'reports' && (
