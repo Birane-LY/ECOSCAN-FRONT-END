@@ -14,7 +14,7 @@ import {
 
 const SLOT_KEYS = ['matin', 'midi', 'apresmidi', 'soir']
 
-export function WoyofalTool({ setDrawer }) {
+export function WoyofalTool({ setDrawer, pendingCapture, onCaptureConsumed }) {
   // L'organisation doit être connue AVANT d'interroger le compteur :
   // useCompteur() sans son id ne peut trouver aucun compteur.
   const { organisation, loading: organisationLoading, error: organisationError } = useOrganisation()
@@ -24,8 +24,7 @@ export function WoyofalTool({ setDrawer }) {
 
   const [slotValues, setSlotValues] = useState({ matin: '', midi: '', apresmidi: '', soir: '' })
   const [slotNotes, setSlotNotes] = useState({ matin: '', midi: '', apresmidi: '', soir: '' })
-  // Bug fix 1 (doublons) : on retient quels créneaux ont déjà été persistés
-  // pour ne jamais les renvoyer lors d'un enregistrement suivant.
+
   const [savedSlotIds, setSavedSlotIds] = useState(() => new Set())
   const [dayReview, setDayReview] = useState('')
   const [reviewMode, setReviewMode] = useState('text')
@@ -34,8 +33,25 @@ export function WoyofalTool({ setDrawer }) {
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState(null)
 
-  // Bug fix 3 (fuite de setTimeout) : on garde une référence pour pouvoir
-  // annuler le timeout si le composant est démonté entre-temps.
+  // Effet pour remplir automatiquement le premier créneau disponible lorsqu'une capture est reçue
+  useEffect(() => {
+    if (!pendingCapture) return
+
+    const valeur = pendingCapture.nouveau_index ?? pendingCapture.consommation_kwh
+    if (valeur == null) {
+      onCaptureConsumed?.()
+      return
+    }
+
+    setSlotValues((current) => {
+      const premierVide = ['matin', 'midi', 'apresmidi', 'soir'].find((id) => !current[id])
+      if (!premierVide) return current
+      return { ...current, [premierVide]: String(valeur) }
+    })
+
+    onCaptureConsumed?.()
+  }, [pendingCapture, onCaptureConsumed])
+
   const savedTimeoutRef = useRef(null)
   useEffect(() => {
     return () => {
@@ -47,9 +63,6 @@ export function WoyofalTool({ setDrawer }) {
   const completedCount = Object.values(slotValues).filter(Boolean).length
   const dailyTotal = calculateDayCumulative(slotValues, baseline)
 
-  // Bug fix 2 (delta faux) : on remonte jusqu'au dernier créneau réellement
-  // rempli au lieu de s'arrêter au créneau immédiatement précédent ; si aucun
-  // créneau antérieur n'est rempli, on retombe sur le baseline (dernier relevé connu).
   const getPreviousValue = (slotIndex) => {
     for (let i = slotIndex - 1; i >= 0; i -= 1) {
       const key = SLOT_KEYS[i]
