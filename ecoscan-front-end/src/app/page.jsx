@@ -20,6 +20,8 @@ import { SettingsView } from '@/modules/settings/components/SettingsView'
 import { useCommandPaletteShortcut } from '@/hooks/useCommandPaletteShortcut'
 import { usePreferences } from '@/modules/settings/hooks/usePreferences'
 import { OnboardingWizard } from '@/modules/onboarding/components/OnboardingWizard'
+import { MemoryView } from '@/modules/memory/components/MemoryView'
+
 import {
   AppShell,
   Sidebar,
@@ -40,6 +42,7 @@ const VIEW_TITLES = {
   assistant: 'Assistant IA',
   features: 'Outils métier',
   settings: 'Paramètres',
+  memory: 'Mémoire stratégique',
 }
 
 const INITIAL_NOTIFICATIONS = [
@@ -148,9 +151,18 @@ export default function MainPage() {
     announceAction._t = window.setTimeout(() => setActionToast(null), 3000)
   }, [])
 
-  const handleCaptureConfirm = ({ kind, file }) => {
-    announceAction(`${kind === 'invoice' ? 'Facture' : 'Consommation'} capturée : ${file.name}`)
-  }
+  const [pendingCapture, setPendingCapture] = useState(null)
+
+  const handleCaptureConfirm = ({ champs }) => {
+    setPendingCapture(champs)
+    go('features') // ouvre Outils métier, où vit WoyofalTool (onglet par défaut)
+    announceAction('Champs détectés — vérifiez-les dans le formulaire Woyofal')
+}
+
+// dans le rendu :
+{view === 'features' && (
+  <BusinessToolsView role={activeRole} setDrawer={setDrawer} pendingCapture={pendingCapture} onCaptureConsumed={() => setPendingCapture(null)} />
+)}
 
   // --- Assistant IA depuis la vue d'ensemble ---
   const handleAskWithNav = (question) => {
@@ -195,7 +207,8 @@ if (orgError || !activeOrganisation) {
   )
 }
 
-  // Rendu modulaire de la vue courante
+
+// Rendu modulaire de la vue courante
   const renderView = () => {
     switch (view) {
       case 'overview':
@@ -235,6 +248,8 @@ if (orgError || !activeOrganisation) {
         return <BusinessToolsView role={activeRole} setDrawer={setDrawer} />
       case 'settings':
         return <SettingsView preferences={preferences} updatePreferences={updatePreferences} />
+      case 'memory':
+        return <MemoryView />
       default:
         return null
     }
