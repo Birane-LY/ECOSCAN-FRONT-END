@@ -13,17 +13,18 @@ import {
   FileSpreadsheet,
   Target,
   Wrench,
-  X,
+  X,BrainCircuit,
 } from "lucide-react";
 import { APP_CONFIG } from "@/lib/config";
 import { ROLE_PROFILES } from "@/modules/auth/constants";
 
 const PRIMARY_NAV = [
-  { id: "overview", label: "Vue d’ensemble", icon: Gauge },
-  { id: "analyses", label: "Analyses", icon: TrendingDown },
-  { id: "data", label: "Données", icon: FileSpreadsheet },
-  { id: "goals", label: "Objectifs", icon: Target },
-];
+  { id: 'overview', label: "Vue d’ensemble", icon: Gauge },
+  { id: 'analyses', label: 'Analyses', icon: TrendingDown },
+  { id: 'data', label: 'Données', icon: FileSpreadsheet },
+  { id: 'goals', label: 'Objectifs', icon: Target },
+  { id: 'memory', label: 'Mémoire', icon: BrainCircuit },
+]
 
 export function Sidebar({
   mobileNav, setMobileNav, view, go, openUpload, activeRole, currentProfile,
