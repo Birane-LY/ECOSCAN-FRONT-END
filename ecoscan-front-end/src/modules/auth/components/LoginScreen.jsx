@@ -1,146 +1,121 @@
 'use client'
 
 import React, { useState } from 'react'
-import {ArrowUpRight, ChevronRight, Eye, AlertCircle } from 'lucide-react'
+import { AlertCircle, ArrowUpRight, Eye, EyeOff } from 'lucide-react'
+import { DotGlobe } from '@/components/instruments'
 import { APP_CONFIG } from '@/lib/config'
 
+// Pré-remplissage facultatif pour la démonstration : définissez NEXT_PUBLIC_DEMO_EMAIL / NEXT_PUBLIC_DEMO_PASSWORD
+// dans .env.local. En production, laissez-les vides.
+const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL ?? ''
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? ''
+
 export function LoginScreen({ onLogin, onLoginDemo }) {
-  const [email, setEmail] = useState('camille@nova-industries.fr')
-  const [password, setPassword] = useState('ecoscan2024')
+  const [email, setEmail] = useState(DEMO_EMAIL)
+  const [password, setPassword] = useState(DEMO_PASSWORD)
   const [showPassword, setShowPassword] = useState(false)
-  const [remember, setRemember] = useState(true)
   const [forgot, setForgot] = useState(false)
-  
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (forgot) return
-
     setLoading(true)
     setErrorMessage(null)
-
     const result = await onLogin(email, password)
     setLoading(false)
-
-    if (!result?.success) {
-      setErrorMessage(result?.error || 'Échec de la connexion au serveur.')
-    }
+    if (!result?.success) setErrorMessage(result?.error || 'Échec de la connexion au serveur.')
   }
 
   return (
-    <main className="auth-shell">
-      <section className="auth-visual">
-        <div className="brand-row">
-          <img className="ecoscan-logo" src={APP_CONFIG?.logoUrl || '/logo.svg'} alt="EcoScan" />
+    <main className="eco-shell lg" data-theme="night">
+      <div className="eco-backdrop" aria-hidden="true" />
+      <div className="lg-globe">
+        <DotGlobe />
+      </div>
+
+      <section className="lg-panel">
+        <div className="lg-brand">
+          {APP_CONFIG?.logoUrl && <img src={APP_CONFIG.logoUrl} alt="" />}
           <span>{APP_CONFIG?.name || 'EcoScan'}</span>
         </div>
-        <p className="eyebrow">PILOTAGE ÉNERGÉTIQUE</p>
-        <h1>Décidez avec une longueur d’avance.</h1>
-        <p>Un espace de travail calme pour transformer chaque donnée en action.</p>
-      </section>
 
-      <section className="auth-card">
-        <p className="eyebrow">ESPACE SÉCURISÉ</p>
-        <h2>{forgot ? 'Réinitialiser votre accès' : 'Bon retour parmi nous.'}</h2>
-        <p className="auth-muted">
-          {forgot
-            ? 'Saisissez votre email pour recevoir un lien de récupération.'
-            : 'Connectez-vous à votre espace Nova Industries.'}
-        </p>
+        <div className="lg-spacer" aria-hidden="true" />
 
-        {errorMessage && (
-          <div className="auth-error-banner" style={{ color: 'red', marginBottom: '1rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <AlertCircle size={16} />
-            <span>{errorMessage}</span>
-          </div>
-        )}
+        <div className="lg-copy">
+          <h1>Décidez avec une longueur d’avance.</h1>
+          <p>Un espace de travail calme pour transformer chaque donnée en action.</p>
+        </div>
 
-        {forgot ? (
-          <>
-            <label>
-              Email professionnel
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
-            <button className="primary-button" onClick={() => setForgot(false)}>
-              Envoyer le lien
-            </button>
-            <button className="quiet-button" onClick={() => setForgot(false)}>
+        <div className="lg-card glass">
+          <h2>{forgot ? 'Accès oublié' : 'Bon retour parmi nous.'}</h2>
+          <p className="lg-sub">
+            {forgot
+              ? 'La réinitialisation en libre-service n’est pas encore disponible. Contactez l’administrateur de votre organisation pour recevoir un nouvel accès.'
+              : 'Connectez-vous à votre espace de pilotage énergétique.'}
+          </p>
+
+          {errorMessage && (
+            <div className="lg-error" role="alert">
+              <AlertCircle size={17} />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {forgot ? (
+            <button type="button" className="secondary-button lg-full" onClick={() => setForgot(false)}>
               Retour à la connexion
             </button>
-          </>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <label>
-              Email professionnel
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
-            <label>
-              Mot de passe
-              <div className="password-field">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                  type="button"
-                  aria-label="Afficher le mot de passe"
-                  onClick={() => setShowPassword((v) => !v)}
-                >
-                  <Eye size={16} />
-                </button>
-              </div>
-            </label>
-            <label className="remember-row">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-              />{' '}
-              Rester connecté{' '}
-              <button type="button" onClick={() => setForgot(true)}>
+          ) : (
+            <form onSubmit={handleSubmit} className="lg-form">
+              <label className="fld">
+                Email professionnel
+                <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </label>
+              <label className="fld">
+                Mot de passe
+                <span className="fld-unit">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="lg-eye"
+                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    onClick={() => setShowPassword((v) => !v)}
+                  >
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </span>
+              </label>
+
+              <button type="submit" className="primary-button lg-full" disabled={loading}>
+                {loading ? 'Connexion en cours…' : 'Se connecter'} <ArrowUpRight size={16} />
+              </button>
+              <button type="button" className="quiet-button lg-forgot" onClick={() => setForgot(true)}>
                 Mot de passe oublié ?
               </button>
-            </label>
-            
-            <button type="submit" className="primary-button" disabled={loading}>
-              {loading ? 'Connexion en cours...' : 'Se connecter'} <ArrowUpRight size={15} />
-            </button>
 
-            <div className="auth-divider">
-              <span>OU ESSAYER UN PROFIL DÉMO</span>
-            </div>
-
-            <div className="demo-accounts">
-              <button type="button" onClick={() => onLoginDemo ? onLoginDemo('ops') : onLogin('ops')}>
-                <b>OD</b>
-                <span>
-                  Opérations<small>Accès quotidien</small>
-                </span>
-                <ChevronRight size={14} />
-              </button>
-              <button type="button" onClick={() => onLoginDemo ? onLoginDemo('viewer') : onLogin('viewer')}>
-                <b>FN</b>
-                <span>
-                  Lecture seule<small>Consultation</small>
-                </span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </form>
-        )}
+              {onLoginDemo && (
+                <div className="lg-demo">
+                  <span>Ou essayer un profil de démonstration</span>
+                  <div>
+                    <button type="button" className="secondary-button" onClick={() => onLoginDemo('ops')}>
+                      Opérations
+                    </button>
+                    <button type="button" className="secondary-button" onClick={() => onLoginDemo('viewer')}>
+                      Lecture seule
+                    </button>
+                  </div>
+                </div>
+              )}
+            </form>
+          )}
+        </div>
       </section>
     </main>
   )
