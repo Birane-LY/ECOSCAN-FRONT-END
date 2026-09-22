@@ -1,21 +1,18 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
 
-export function StatusChip({ status, variant, className }) {
-  const getVariantClass = () => {
-    if (variant) return variant
-    if (status === 'Prêt' || status === 'Synchronisé' || status === 'Actif' || status === 'Éligible') {
-      return 'ready'
-    }
-    if (status === 'En revue' || status === 'À vérifier' || status === 'À valider') {
-      return 'review'
-    }
-    return ''
-  }
+const OK = ['Prêt', 'Synchronisé', 'Actif', 'Éligible', 'Connecté', 'Confirmée']
+const WARN = ['En revue', 'À vérifier', 'À valider', 'En attente', 'En cours', 'Configuré']
+const ALERT = ['Rejeté', 'Échoué']
 
-  return (
-    <span className={cn('status-chip', getVariantClass(), className)}>
-      {status}
-    </span>
-  )
+export function StatusChip({ status, variant, className }) {
+  const tone =
+    variant === 'ready' || OK.includes(status)
+      ? 'chip-ok'
+      : variant === 'review' || WARN.includes(status)
+        ? 'chip-warn'
+        : ALERT.includes(status)
+          ? 'chip-alert'
+          : ''
+  return <span className={cn('chip', tone, className)}>{status}</span>
 }
