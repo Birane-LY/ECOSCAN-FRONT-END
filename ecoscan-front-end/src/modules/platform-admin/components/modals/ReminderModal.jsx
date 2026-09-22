@@ -6,48 +6,38 @@ import { Send } from 'lucide-react'
 export function ReminderModal({ orgs, notify, close }) {
   const handleSubmit = (e) => {
     e.preventDefault()
-    notify('Relance programmée avec succès')
+    notify('Relance programmée')
     close()
   }
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
-      <div className="form-group">
-        <label>Objet du message</label>
-        <input
-          required
-          className="admin-input"
-          defaultValue="Votre renouvellement EcoScan arrive à échéance"
-        />
-      </div>
-      <div className="form-group">
-        <label>Contenu de la notification</label>
-        <textarea
-          required
-          rows={4}
-          className="admin-textarea"
-          defaultValue="Bonjour, votre abonnement EcoScan arrive bientôt à échéance. Veuillez vérifier vos informations de paiement."
-        />
-      </div>
-      <div className="form-group">
-        <label>Canal d'envoi</label>
-        <select className="admin-select" defaultValue="Email">
+    <form className="form-grid" onSubmit={handleSubmit}>
+      <label className="fld span-2">
+        Objet
+        <input required defaultValue="Votre renouvellement EcoScan arrive à échéance" />
+      </label>
+      <label className="fld span-2">
+        Message
+        <textarea required rows={4} defaultValue="Bonjour, votre abonnement EcoScan arrive bientôt à échéance." />
+      </label>
+      <label className="fld">
+        Canal
+        <select defaultValue="Email">
           <option>Email</option>
-          <option>Notification In-App</option>
+          <option>In-app</option>
         </select>
-      </div>
-      <div className="form-group">
-        <label>Cible</label>
-        <select className="admin-select">
+      </label>
+      <label className="fld">
+        Organisations
+        <select>
           <option>Toutes les organisations à échéance</option>
           {orgs.map((o) => (
             <option key={o.id}>{o.name}</option>
           ))}
         </select>
-      </div>
-
-      <button className="admin-primary full-width" type="submit">
-        <Send size={14} />
+      </label>
+      <button className="primary-button span-2" type="submit">
+        <Send size={15} />
         Programmer la relance
       </button>
     </form>

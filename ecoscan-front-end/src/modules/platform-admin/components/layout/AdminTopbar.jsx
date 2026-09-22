@@ -1,53 +1,37 @@
 'use client'
 
 import React from 'react'
-import { Bell, Menu, Search, Sparkles } from 'lucide-react'
+import { Bell, Menu, MessageSquareText, Moon, Search, Sun } from 'lucide-react'
 
-export function AdminTopbar({ title, setDrawer, setChat, notify }) {
+export function AdminTopbar({ title, setDrawer, setChat, notify, dark, setDark }) {
   return (
-    <header className="admin-topbar">
-      <div className="admin-topbar-left">
-        <button
-          className="admin-menu-button icon-button"
-          onClick={() => setDrawer(true)}
-          aria-label="Ouvrir le menu"
-        >
+    <header className="adm-top">
+      <div className="adm-top-left">
+        <button type="button" className="icon-button adm-menu" onClick={() => setDrawer(true)} aria-label="Ouvrir le menu">
           <Menu size={18} />
         </button>
-
-        <div className="admin-breadcrumb">
-          <span>EcoScan Platform</span>
-          <span className="sep">/</span>
-          <strong>{title}</strong>
-        </div>
+        <span className="adm-crumb">
+          EcoScan Platform <span aria-hidden="true">/</span> <strong>{title}</strong>
+        </span>
       </div>
 
-      <div className="admin-topbar-right">
-        <label className="admin-search">
-          <Search size={15} />
-          <input placeholder="Rechercher une organisation, facture, ticket..." />
+      <div className="adm-top-actions">
+        <label className="adm-search">
+          <Search size={16} />
+          <input placeholder="Rechercher…" aria-label="Rechercher" />
         </label>
-
-        <button
-          className="icon-button admin-icon-button"
-          onClick={() => notify('Aucune nouvelle notification')}
-          aria-label="Notifications"
-        >
+        <button type="button" className="icon-button" onClick={() => setDark((v) => !v)} aria-label={dark ? 'Passer en thème clair' : 'Passer en thème nuit'}>
+          {dark ? <Sun size={17} /> : <Moon size={17} />}
+        </button>
+        <button type="button" className="icon-button" onClick={() => notify('Aucune nouvelle notification')} aria-label="Notifications">
           <Bell size={17} />
         </button>
-
-        <button
-          className="admin-copilot-btn"
-          onClick={() => setChat(true)}
-          title="Ouvrir l'assistant AI"
-        >
-          <Sparkles size={15} />
-          <span>Copilot</span>
+        <button type="button" className="icon-button" onClick={() => setChat(true)} aria-label="Ouvrir la messagerie de la plateforme">
+          <MessageSquareText size={17} />
         </button>
-
-        <div className="admin-top-avatar" title="Camille Martin">
+        <span className="ad-avatar" aria-hidden="true">
           CM
-        </div>
+        </span>
       </div>
     </header>
   )

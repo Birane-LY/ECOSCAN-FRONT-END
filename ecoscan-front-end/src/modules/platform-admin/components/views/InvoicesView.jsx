@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Download, Search, FileText } from 'lucide-react'
+import { Download, Search } from 'lucide-react'
+import { GlassCard } from '@/components/instruments'
 import { AdminHeading } from './AdminHeading'
+import { statusTone } from './adminUi'
 import { filterInvoices } from '../../services/adminServices'
 
 export function InvoicesView({ invoices, setInvoices, notify, openModal }) {
@@ -12,104 +14,83 @@ export function InvoicesView({ invoices, setInvoices, notify, openModal }) {
   return (
     <>
       <AdminHeading
-        eyebrow="FINANCE CONTROL"
         title="Factures mensuelles"
         subtitle="Suivez les échéances, paiements et anomalies de recouvrement."
         action={
-          <button
-            className="admin-primary"
-            onClick={() => notify('Registre exporté')}
-          >
-            <Download size={14} />
+          <button className="primary-button" onClick={() => notify('Registre exporté')}>
+            <Download size={16} />
             Exporter
           </button>
         }
       />
 
-      <div className="admin-stat-grid compact">
+      <div className="adm-stats compact">
         {[
-          ['À encaisser', '1.84M FCFA'],
-          ['Payées', '12.36M FCFA'],
+          ['À encaisser', '1,84 M FCFA'],
+          ['Payées', '12,36 M FCFA'],
           ['En retard', '3'],
-          ['Taux de collecte', '93.2%'],
+          ['Taux de collecte', '93,2 %'],
         ].map(([a, b]) => (
-          <article className="admin-stat-card" key={a}>
+          <GlassCard as="article" className="adm-stat" key={a}>
             <span>{a}</span>
             <strong>{b}</strong>
             <small>Septembre 2026</small>
-          </article>
+          </GlassCard>
         ))}
       </div>
 
-      <article className="admin-panel">
-        <div className="admin-toolbar">
-          <label className="admin-filter">
-            <Search size={15} />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Rechercher une facture..."
-            />
+      <GlassCard as="article" className="adm-panel">
+        <div className="adm-toolbar">
+          <label className="fd-search">
+            <Search size={16} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher une facture…" aria-label="Rechercher une facture" />
           </label>
-          <select className="admin-select">
+          <select className="st-select" aria-label="Période">
             <option>Septembre 2026</option>
             <option>Août 2026</option>
           </select>
         </div>
 
-        <div className="admin-table invoice-table">
-          <div className="admin-row admin-head">
+        <div className="adm-table" style={{ '--cols': '1.2fr 1.4fr 1fr 1fr 1fr 1.4fr' }}>
+          <div className="adm-row adm-head">
             <span>Facture</span>
             <span>Organisation</span>
             <span>Montant</span>
             <span>Échéance</span>
             <span>Statut</span>
-            <span className="text-right">Actions</span>
+            <span>Actions</span>
           </div>
           {rows.map((i) => (
-            <div className="admin-row" key={i.id}>
-              <button className="row-link" onClick={() => openModal && openModal('invoice', i)}>
-                <FileText size={14} className="row-icon" />
-                <b>{i.id}</b>
-              </button>
+            <div className="adm-row" key={i.id}>
+              <strong>{i.id}</strong>
               <span>{i.org}</span>
-              <span className="amount-val">{i.amount}</span>
+              <span>{i.amount}</span>
               <span>{i.due}</span>
-              <div>
-                <span className={`status-chip ${i.status === 'Payée' ? 'active' : 'warning'}`}>
-                  {i.status}
-                </span>
-              </div>
-              <div className="row-actions text-right">
+              <span className={`chip ${statusTone(i.status)}`}>{i.status}</span>
+              <span className="adm-row-actions">
                 <button
-                  className="row-action text-btn"
-                  onClick={() => {
-                    if (openModal) openModal('invoice', i)
-                    else notify(`Détail de ${i.id}`)
-                  }}
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => (openModal ? openModal('invoice', i) : notify(`Détail de ${i.id}`))}
                 >
                   Voir
                 </button>
-                {i.status !== 'Payée' && (
-                  <button
-                    className="row-action text-btn highlight"
-                    onClick={() => {
-                      setInvoices(
-                        invoices.map((x) =>
-                          x.id === i.id ? { ...x, status: 'Payée' } : x
-                        )
-                      )
-                      notify('Facture marquée comme payée')
-                    }}
-                  >
-                    Payer
-                  </button>
-                )}
-              </div>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    setInvoices(invoices.map((x) => (x.id === i.id ? { ...x, status: 'Payée' } : x)))
+                    notify('Facture marquée comme payée')
+                  }}
+                >
+                  Payer
+                </button>
+              </span>
             </div>
           ))}
+          {rows.length === 0 && <p className="drawer-lead">Aucune facture ne correspond à cette recherche.</p>}
         </div>
-      </article>
+      </GlassCard>
     </>
   )
 }

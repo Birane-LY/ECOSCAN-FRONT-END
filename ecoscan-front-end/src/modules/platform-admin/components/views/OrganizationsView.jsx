@@ -1,187 +1,123 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Check, Download, Pencil, Plus, Search, Building2 } from 'lucide-react'
-import { AdminHeading } from '@/modules/platform-admin/components/views/AdminHeading'
+import { Check, Download, Pencil, Plus, Search } from 'lucide-react'
+import { GlassCard } from '@/components/instruments'
+import { AdminHeading } from './AdminHeading'
+import { statusTone } from './adminUi'
+import { filterOrganizations } from '../../services/adminServices'
 
-function filterOrganisations(orgs, q, filter) {
-  const query = q.trim().toLowerCase()
-  return orgs.filter((o) => {
-    const matchQuery = !query || o.name.toLowerCase().includes(query) || (o.sector || '').toLowerCase().includes(query)
-    const matchFilter = filter === 'Toutes' || o.status === filter
-    return matchQuery && matchFilter
-  })
-}
-
-export function OrganizationsView({
-  organisations,
-  loading,
-  error,
-  activer,
-  suspendre,
-  selectOrg,
-  selectedOrg,
-  openModal,
-  notify,
-}) {
+export function OrganizationsView({ orgs, setOrgs, selectOrg, selectedOrg, openModal, notify }) {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('Toutes')
-  const [busyId, setBusyId] = useState(null)
-
-  const visible = filterOrganisations(organisations, q, filter)
-
-  const handleActiver = async (org) => {
-    setBusyId(org.id)
-    try {
-      await activer(org.id)
-      notify('Organisation activée')
-      if (selectedOrg?.id === org.id) selectOrg(null)
-    } catch (err) {
-      notify(err.message)
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  const handleSuspendre = async (org) => {
-    setBusyId(org.id)
-    try {
-      await suspendre(org.id)
-      notify('Organisation suspendue')
-      if (selectedOrg?.id === org.id) selectOrg(null)
-    } catch (err) {
-      notify(err.message)
-    } finally {
-      setBusyId(null)
-    }
-  }
+  const visible = filterOrganizations(orgs, q, filter)
 
   return (
     <>
       <AdminHeading
-        eyebrow="MULTI-TENANT MANAGEMENT"
         title="Organisations"
         subtitle="Validez, accompagnez et administrez les espaces clients."
         action={
-          <button className="admin-primary" onClick={() => openModal('org')}>
-            <Plus size={14} />
+          <button className="primary-button" onClick={() => openModal('org')}>
+            <Plus size={16} />
             Créer
           </button>
         }
       />
 
-      <div className="admin-toolbar">
-        <label className="admin-filter">
-          <Search size={15} />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Rechercher par nom, secteur..."
-          />
+      <div className="adm-toolbar">
+        <label className="fd-search">
+          <Search size={16} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nom, secteur…" aria-label="Rechercher une organisation" />
         </label>
-        <select className="admin-select" value={filter} onChange={(e) => setFilter(e.target.value)}>
+        <select className="st-select" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Filtrer par statut">
           <option>Toutes</option>
           <option>À valider</option>
           <option>Actif</option>
           <option>Suspendu</option>
         </select>
-        <button
-          className="admin-secondary"
-          onClick={() => notify('Export CSV — disponible sous peu')}
-        >
-          <Download size={14} />
+        <button type="button" className="secondary-button" onClick={() => notify('Export CSV préparé')}>
+          <Download size={16} />
           Exporter
         </button>
       </div>
 
-      {loading && <p className="admin-state-message">Chargement des organisations…</p>}
-      {error && <p className="admin-state-message error">Erreur : {error}</p>}
-
-      {!loading && !error && (
-        <article className="admin-panel">
-          <div className="admin-table org-table">
-            <div className="admin-row admin-head">
-              <span>Organisation</span>
-              <span>Secteur</span>
-              <span>Localisation</span>
-              <span>Utilisateurs</span>
-              <span>Statut</span>
-              <span className="text-right">Actions</span>
-            </div>
-            {visible.map((o) => (
-              <div className="admin-row" key={o.id}>
-                <button className="row-link" onClick={() => selectOrg(o)}>
-                  <Building2 size={15} className="row-icon" />
-                  <b>{o.name}</b>
-                </button>
-                <span>{o.sector}</span>
-                <span>{o.location}</span>
-                <span>{o.users}</span>
-                <div>
-                  <span
-                    className={`status-chip ${
-                      o.status === 'Actif'
-                        ? 'active'
-                        : o.status === 'À valider'
-                        ? 'warning'
-                        : 'suspended'
-                    }`}
-                  >
-                    {o.status}
-                  </span>
-                </div>
-                <div className="row-actions text-right">
-                  <button
-                    className="row-action icon-only"
-                    onClick={() => openModal('org', o)}
-                    aria-label="Modifier"
-                    title="Modifier"
-                  >
-                    <Pencil size={13} />
-                  </button>
-                  <button
-                    className="row-action text-btn"
-                    disabled={busyId === o.id}
-                    onClick={() => (o.statusRaw === 'ACTIVE' ? handleSuspendre(o) : handleActiver(o))}
-                  >
-                    {busyId === o.id ? '…' : o.statusRaw === 'ACTIVE' ? 'Suspendre' : 'Activer'}
-                  </button>
-                </div>
-              </div>
-            ))}
-            {visible.length === 0 && (
-              <div className="admin-empty-table">
-                Aucune organisation ne correspond aux critères.
-              </div>
-            )}
+      <GlassCard as="article" className="adm-panel adm-table-wrap">
+        <div className="adm-table" style={{ '--cols': '1.6fr 1fr 0.8fr 0.8fr 1fr 1.2fr' }}>
+          <div className="adm-row adm-head">
+            <span>Organisation</span>
+            <span>Secteur</span>
+            <span>Plan</span>
+            <span>Utilisateurs</span>
+            <span>Statut</span>
+            <span>Actions</span>
           </div>
-        </article>
-      )}
+          {visible.map((o) => (
+            <div className="adm-row" key={o.id}>
+              <button type="button" className="adm-row-link" onClick={() => selectOrg(o)}>
+                <strong>{o.name}</strong>
+                <small>{o.email}</small>
+              </button>
+              <span>{o.sector}</span>
+              <span>{o.plan}</span>
+              <span>{o.users}</span>
+              <span className={`chip ${statusTone(o.status)}`}>{o.status}</span>
+              <span className="adm-row-actions">
+                <button type="button" className="icon-button" onClick={() => openModal('org', o)} aria-label={`Modifier ${o.name}`}>
+                  <Pencil size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    setOrgs(orgs.map((x) => (x.id === o.id ? { ...x, status: x.status === 'Actif' ? 'Suspendu' : 'Actif' } : x)))
+                    notify('Statut mis à jour')
+                  }}
+                >
+                  {o.status === 'Actif' ? 'Suspendre' : 'Activer'}
+                </button>
+              </span>
+            </div>
+          ))}
+          {visible.length === 0 && <p className="drawer-lead">Aucune organisation ne correspond à ces filtres.</p>}
+        </div>
+      </GlassCard>
 
       {selectedOrg && (
-        <article className="admin-inline-detail">
+        <GlassCard as="article" tone="inverse" className="adm-inline">
           <div>
-            <small className="eyebrow">ORGANISATION SÉLECTIONNÉE</small>
+            <span className="hc-label">Organisation sélectionnée</span>
             <h3>{selectedOrg.name}</h3>
-            <span>
-              {selectedOrg.location} · {selectedOrg.users} utilisateur{selectedOrg.users > 1 ? 's' : ''} ·{' '}
-              {selectedOrg.sector}
+            <span className="hc-sub">
+              {selectedOrg.email}, {selectedOrg.users} utilisateurs, {selectedOrg.plan}
             </span>
           </div>
-          <div className="inline-actions">
-            {selectedOrg.statusRaw !== 'ACTIVE' && (
-              <button className="admin-primary" disabled={busyId === selectedOrg.id} onClick={() => handleActiver(selectedOrg)}>
-                <Check size={14} />
-                {selectedOrg.statusRaw === 'EN_ATTENTE' ? 'Approuver' : 'Activer'}
-              </button>
-            )}
-            {selectedOrg.statusRaw !== 'SUSPENDUE' && (
-              <button className="admin-danger" disabled={busyId === selectedOrg.id} onClick={() => handleSuspendre(selectedOrg)}>
-                Suspendre
-              </button>
-            )}
+          <div className="adm-actions">
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => {
+                setOrgs(orgs.map((o) => (o.id === selectedOrg.id ? { ...o, status: 'Actif' } : o)))
+                selectOrg(null)
+                notify('Organisation approuvée')
+              }}
+            >
+              <Check size={16} />
+              Approuver
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                setOrgs(orgs.map((o) => (o.id === selectedOrg.id ? { ...o, status: 'Suspendu' } : o)))
+                selectOrg(null)
+                notify('Organisation suspendue')
+              }}
+            >
+              Suspendre
+            </button>
           </div>
-        </article>
+        </GlassCard>
       )}
     </>
   )

@@ -1,12 +1,11 @@
 import React from 'react'
 
-export function AdminHeading({ eyebrow, title, subtitle, action }) {
+export function AdminHeading({ title, subtitle, action }) {
   return (
-    <div className="admin-page-heading">
+    <div className="page-header">
       <div>
-        <small>{eyebrow}</small>
         <h1>{title}</h1>
-        <p>{subtitle}</p>
+        {subtitle && <p className="subtitle">{subtitle}</p>}
       </div>
       {action}
     </div>

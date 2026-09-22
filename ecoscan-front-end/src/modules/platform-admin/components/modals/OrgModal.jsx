@@ -3,12 +3,8 @@
 import React, { useState } from 'react'
 import { Check } from 'lucide-react'
 
-export function OrgModal({ initial, onSubmit, submitting, error }) {
-  const [d, setD] = useState(
-    initial
-      ? { name: initial.name, sector: initial.sector, location: initial.location }
-      : { name: '', sector: '', location: '' }
-  )
+export function OrgModal({ initial, onSubmit }) {
+  const [d, setD] = useState(initial || { name: '', sector: '', email: '', plan: 'Pro', due: '' })
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -16,46 +12,30 @@ export function OrgModal({ initial, onSubmit, submitting, error }) {
   }
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
-      <div className="form-group">
-        <label>Nom de l’organisation</label>
-        <input
-          required
-          className="admin-input"
-          placeholder="ex: Sunu Agro"
-          value={d.name}
-          onChange={(e) => setD({ ...d, name: e.target.value })}
-        />
-      </div>
-      <div className="form-group">
-        <label>Secteur d'activité</label>
-        <input
-          required
-          className="admin-input"
-          placeholder="ex: Agroalimentaire"
-          value={d.sector}
-          onChange={(e) => setD({ ...d, sector: e.target.value })}
-        />
-      </div>
-      <div className="form-group">
-        <label>Localisation</label>
-        <input
-          required
-          className="admin-input"
-          placeholder="ex: Dakar, Sénégal"
-          value={d.location}
-          onChange={(e) => setD({ ...d, location: e.target.value })}
-        />
-      </div>
-
-      {error && <p className="form-error">{error}</p>}
-
-      <div className="form-actions">
-        <button className="admin-primary full-width" type="submit" disabled={submitting}>
-          <Check size={14} />
-          {submitting ? 'Enregistrement…' : 'Enregistrer l’organisation'}
-        </button>
-      </div>
+    <form className="form-grid" onSubmit={handleSubmit}>
+      {[
+        ['name', 'Nom de l’organisation', 'text'],
+        ['sector', 'Secteur', 'text'],
+        ['email', 'Email administrateur', 'email'],
+        ['due', 'Fin d’essai ou échéance', 'text'],
+      ].map(([k, l, type]) => (
+        <label key={k} className="fld span-2">
+          {l}
+          <input required type={type} value={d[k] || ''} onChange={(e) => setD({ ...d, [k]: e.target.value })} />
+        </label>
+      ))}
+      <label className="fld span-2">
+        Plan
+        <select value={d.plan} onChange={(e) => setD({ ...d, plan: e.target.value })}>
+          <option>Free</option>
+          <option>Pro</option>
+          <option>Enterprise</option>
+        </select>
+      </label>
+      <button className="primary-button span-2" type="submit">
+        <Check size={16} />
+        Enregistrer
+      </button>
     </form>
   )
 }

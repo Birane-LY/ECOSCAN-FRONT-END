@@ -1,97 +1,34 @@
-import {
-  Activity,
-  BarChart3,
-  Building2,
-  CircleDollarSign,
-  Headphones,
-  LayoutDashboard,
-  ShieldCheck,
-  Users,
-} from 'lucide-react'
+import { Building2, CreditCard, Gauge, LifeBuoy, Server, TrendingUp, UserCog, Users } from 'lucide-react'
 
+// Navigation de la console plateforme. Slices utilisés par AdminSidebar :
+// 0-3 Plateforme, 3-6 Pilotage, 6+ Opérations. Les 2 dernières (invoices, reminders)
+// sont ajoutées séparément sous "Revenus" dans la sidebar.
 export const ADMIN_NAV_ITEMS = [
-  ['dashboard', 'Vue globale', LayoutDashboard],
+  ['dashboard', 'Tableau de bord', Gauge],
+  ['analytics', 'Analytics', TrendingUp],
   ['organizations', 'Organisations', Building2],
+  ['billing', 'Facturation', CreditCard],
   ['users', 'Utilisateurs', Users],
-  ['analytics', 'Analytics', BarChart3],
-  ['support', 'Support', Headphones],
-  ['billing', 'Billing & plans', CircleDollarSign],
-  ['system', 'Système', Activity],
-  ['team', 'Équipe EcoScan', ShieldCheck],
+  ['team', 'Équipe EcoScan', UserCog],
+  ['support', 'Support', LifeBuoy],
+  ['system', 'Santé système', Server],
 ]
 
 export const INITIAL_ORGS = [
-  {
-    id: 1,
-    name: 'PME Dakar',
-    sector: 'Industrie',
-    plan: 'Enterprise',
-    users: 42,
-    status: 'À valider',
-    email: 'admin@pmedakar.sn',
-    due: '12 sept. 2026',
-  },
-  {
-    id: 2,
-    name: 'Cabinet Conseil',
-    sector: 'Services',
-    plan: 'Pro',
-    users: 18,
-    status: 'Actif',
-    email: 'hello@cabinet.sn',
-    due: '26 sept. 2026',
-  },
-  {
-    id: 3,
-    name: 'Atelier Nord',
-    sector: 'Retail',
-    plan: 'Pro',
-    users: 9,
-    status: 'Actif',
-    email: 'admin@atelier.sn',
-    due: '03 oct. 2026',
-  },
-  {
-    id: 4,
-    name: 'Sunu Foods',
-    sector: 'Agroalimentaire',
-    plan: 'Enterprise',
-    users: 63,
-    status: 'Essai',
-    email: 'it@sunufoods.sn',
-    due: '18 sept. 2026',
-  },
+  { id: 1, name: 'PME Dakar', sector: 'Boulangerie', email: 'contact@pmedakar.sn', plan: 'Enterprise', users: 14, status: 'Actif', due: '12 sept. 2026' },
+  { id: 2, name: 'Sunu Foods', sector: 'Restauration', email: 'admin@sunufoods.sn', plan: 'Enterprise', users: 9, status: 'À valider', due: '18 sept. 2026' },
+  { id: 3, name: 'Cabinet Conseil', sector: 'Services', email: 'hello@cabinetconseil.sn', plan: 'Pro', users: 4, status: 'Actif', due: '26 sept. 2026' },
+  { id: 4, name: 'Atelier Nord', sector: 'BTP', email: 'contact@ateliernord.sn', plan: 'Pro', users: 6, status: 'Suspendu', due: '02 oct. 2026' },
 ]
 
 export const INITIAL_PLANS = [
-  { id: 1, name: 'Free', price: '0', seats: '5', active: 109, status: 'Actif', trial: '14 jours' },
-  { id: 2, name: 'Pro', price: '29 000', seats: '25', active: 286, status: 'Actif', trial: '14 jours' },
-  { id: 3, name: 'Enterprise', price: '450 000', seats: 'Illimité', active: 92, status: 'Actif', trial: '30 jours' },
+  { id: 1, name: 'Free', price: '0', seats: '5', trial: '—', active: 128, status: 'Actif' },
+  { id: 2, name: 'Pro', price: '29 000', seats: '25', trial: '14 jours', active: 214, status: 'Actif' },
+  { id: 3, name: 'Enterprise', price: '450 000', seats: 'Illimité', trial: 'Sur devis', active: 42, status: 'Actif' },
 ]
 
 export const INITIAL_INVOICES = [
-  {
-    id: 'INV-2026-0912',
-    org: 'PME Dakar',
-    amount: '450 000 FCFA',
-    due: '12 sept.',
-    status: 'À relancer',
-    method: 'Virement',
-  },
-  {
-    id: 'INV-2026-0908',
-    org: 'Cabinet Conseil',
-    amount: '29 000 FCFA',
-    due: '26 sept.',
-    status: 'Payée',
-    method: 'Carte',
-  },
-  {
-    id: 'INV-2026-0903',
-    org: 'Sunu Foods',
-    amount: '450 000 FCFA',
-    due: '18 sept.',
-    status: 'Échec paiement',
-    method: 'Carte',
-  },
+  { id: 'FAC-2026-0912', org: 'PME Dakar', amount: '450 000 FCFA', due: '12 sept. 2026', status: 'À encaisser', method: 'Virement' },
+  { id: 'FAC-2026-0918', org: 'Sunu Foods', amount: '450 000 FCFA', due: '18 sept. 2026', status: 'En retard', method: 'Carte' },
+  { id: 'FAC-2026-0926', org: 'Cabinet Conseil', amount: '29 000 FCFA', due: '26 sept. 2026', status: 'Payée', method: 'Virement' },
 ]

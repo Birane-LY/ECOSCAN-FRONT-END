@@ -1,99 +1,69 @@
 'use client'
 
 import React from 'react'
-import { LayoutDashboard, Building2, CreditCard, Users, HelpCircle, Activity, ShieldCheck, ArrowUpRight, X } from 'lucide-react'
-import Link from 'next/link'
+import { CircleDollarSign, LogOut, Send, X } from 'lucide-react'
+import { ADMIN_NAV_ITEMS } from '../../constants'
+
+function NavButton({ id, label, Icon, active, onClick }) {
+  return (
+    <button type="button" className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} onClick={() => onClick(id)}>
+      <Icon size={17} />
+      <span>{label}</span>
+      {id === 'support' && <i>23</i>}
+    </button>
+  )
+}
+
+function NavGroup({ label, items, view, select }) {
+  return (
+    <div className="adm-group">
+      <p>{label}</p>
+      {items.map(([id, itemLabel, Icon]) => (
+        <NavButton key={id} id={id} label={itemLabel} Icon={Icon} active={view === id} onClick={select} />
+      ))}
+    </div>
+  )
+}
 
 export function AdminSidebar({ drawer, setDrawer, view, select }) {
-  const navGroups = [
-    {
-      title: 'GESTION PLATEFORME',
-      items: [
-        { id: 'dashboard', label: 'Aperçu global', icon: LayoutDashboard },
-        { id: 'organizations', label: 'Organisations', icon: Building2 },
-        { id: 'billing', label: 'Offres & Subscriptions', icon: CreditCard },
-      ],
-    },
-    {
-      title: 'EXPLOITATION & SUPPORT',
-      items: [
-        { id: 'users', label: 'Utilisateurs client', icon: Users },
-        { id: 'support', label: 'Support & Tickets', icon: HelpCircle },
-        { id: 'system', label: 'Santé système', icon: Activity },
-      ],
-    },
-    {
-      title: 'GOUVERNANCE',
-      items: [
-        { id: 'team', label: 'Équipe EcoScan', icon: ShieldCheck },
-      ],
-    },
-  ]
-
   return (
-    <aside className={`admin-sidebar ${drawer ? 'open' : ''}`}>
-      <div className="admin-brand">
-        <span className="admin-brand-mark">E</span>
-        <strong>EcoScan</strong>
-        <span className="admin-badge">SUPERADMIN</span>
-        <button className="admin-mobile-close icon-button" onClick={() => setDrawer(false)}>
+    <aside className={`adm-side ${drawer ? 'open' : ''}`}>
+      <div className="adm-brand">
+        <span>EcoScan</span>
+        <span className="chip">Admin</span>
+        <button type="button" className="icon-button adm-close" onClick={() => setDrawer(false)} aria-label="Fermer le menu">
           <X size={18} />
         </button>
       </div>
 
-      <div className="admin-context">
-        <div className="admin-context-icon">HQ</div>
-        <div>
-          <strong>Console Centralisée</strong>
-          <span>Multi-tenant Operations</span>
-        </div>
+      <div className="adm-context">
+        <strong>EcoScan Platform</strong>
+        <small>Console créateurs</small>
       </div>
 
-      <nav className="admin-nav">
-        {navGroups.map((group) => (
-          <div key={group.title} className="admin-nav-group">
-            <p>{group.title}</p>
-            {group.items.map((item) => {
-              const Icon = item.icon
-              const isActive = view === item.id
-              return (
-                <button
-                  key={item.id}
-                  className={`nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => select(item.id)}
-                >
-                  <Icon size={16} />
-                  <span>{item.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        ))}
+      <nav className="adm-nav" aria-label="Navigation de la console">
+        <NavGroup label="Plateforme" items={ADMIN_NAV_ITEMS.slice(0, 3)} view={view} select={select} />
+        <NavGroup label="Pilotage" items={ADMIN_NAV_ITEMS.slice(3, 6)} view={view} select={select} />
+        <NavGroup label="Opérations" items={ADMIN_NAV_ITEMS.slice(6)} view={view} select={select} />
+        <div className="adm-group">
+          <p>Revenus</p>
+          <NavButton id="invoices" label="Factures mensuelles" Icon={CircleDollarSign} active={view === 'invoices'} onClick={select} />
+          <NavButton id="reminders" label="Centre de relances" Icon={Send} active={view === 'reminders'} onClick={select} />
+        </div>
       </nav>
 
-      <div className="admin-sidebar-footer">
-        <div className="system-pill">
-          <span />
-          <div>
-            <strong>Système Opérationnel</strong>
-            <small>Tous les services sont au vert</small>
-          </div>
-        </div>
-
-        <Link href="/dashboard" className="platform-console-link">
-          <span>
-            <strong>Retour au Cockpit</strong>
-            <small>Vue Organisation client</small>
-          </span>
-          <ArrowUpRight size={14} />
-        </Link>
-
-        <div className="admin-profile">
-          <span>CM</span>
+      <div className="adm-side-bottom">
+        <p className="adm-status">
+          <i aria-hidden="true" />
+          Tous les systèmes opérationnels
+        </p>
+        <div className="adm-profile">
+          <span className="ad-avatar">CM</span>
           <div>
             <strong>Camille Martin</strong>
-            <small>Super Administrator</small>
+            <small>Super Admin</small>
           </div>
+          <LogOut size={16} aria-hidden="true" />
         </div>
       </div>
     </aside>

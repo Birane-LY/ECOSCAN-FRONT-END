@@ -2,53 +2,37 @@
 
 import React from 'react'
 import { Plus } from 'lucide-react'
+import { GlassCard } from '@/components/instruments'
 import { AdminHeading } from './AdminHeading'
 
-export function PlatformTableView({
-  title,
-  eyebrow,
-  subtitle,
-  columns,
-  rows,
-  notify,
-}) {
+export function PlatformTableView({ title, subtitle, columns, rows, notify }) {
   return (
     <>
       <AdminHeading
-        eyebrow={eyebrow}
         title={title}
         subtitle={subtitle}
         action={
-          <button
-            className="admin-primary"
-            onClick={() => notify('Formulaire de création ouvert')}
-          >
-            <Plus size={14} />
+          <button className="primary-button" onClick={() => notify('Formulaire de création ouvert')}>
+            <Plus size={16} />
             Nouveau
           </button>
         }
       />
 
-      <article className="admin-panel">
-        <div className="admin-table">
-          <div className="admin-row admin-head">
+      <GlassCard as="article" className="adm-panel">
+        <div className="adm-table" style={{ '--cols': `1.4fr repeat(${columns.length - 1}, 1fr)` }}>
+          <div className="adm-row adm-head">
             {columns.map((c) => (
               <span key={c}>{c}</span>
             ))}
           </div>
           {rows.map((row) => (
-            <button
-              className="admin-row interactive"
-              key={row}
-              onClick={() => notify('Détail ouvert')}
-            >
-              {row.split(' · ').map((p, i) =>
-                i === 0 ? <b key={p}>{p}</b> : <span key={p}>{p}</span>
-              )}
+            <button type="button" className="adm-row adm-row-btn" key={row} onClick={() => notify('Détail ouvert')}>
+              {row.split(' · ').map((p, i) => (i === 0 ? <strong key={p}>{p}</strong> : <span key={p}>{p}</span>))}
             </button>
           ))}
         </div>
-      </article>
+      </GlassCard>
     </>
   )
 }
