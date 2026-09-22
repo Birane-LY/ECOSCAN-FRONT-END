@@ -1,19 +1,22 @@
 import React from 'react'
-import { ArrowUpRight, Sparkles } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
+import { EcoMark, GlassCard } from '@/components/instruments'
 
 export function OpportunitiesBanner({ count, onExplore }) {
-  if (count === 0) return null 
+  if (count === 0) return null
 
   return (
-    <section className="insight-banner">
-      <Sparkles size={19} />
+    <GlassCard tone="inverse" className="an-banner">
+      <EcoMark size={22} />
       <div>
-        <strong>{count} opportunité{count > 1 ? 's' : ''} attend{count > 1 ? 'ent' : ''} votre décision</strong>
+        <strong>
+          {count} opportunité{count > 1 ? 's' : ''} attend{count > 1 ? 'ent' : ''} votre décision
+        </strong>
         <span>EcoScan a croisé vos derniers imports et vos objectifs.</span>
       </div>
-      <button className="text-button" onClick={onExplore}>
-        Explorer <ArrowUpRight size={14} />
+      <button type="button" className="primary-button" onClick={onExplore}>
+        Explorer <ArrowUpRight size={16} />
       </button>
-    </section>
+    </GlassCard>
   )
 }

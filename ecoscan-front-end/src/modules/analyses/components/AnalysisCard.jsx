@@ -1,29 +1,25 @@
 import React from 'react'
-import { Activity, ArrowUpRight } from 'lucide-react'
-import { StatusChip } from '@/components/ui'
+import { ArrowUpRight } from 'lucide-react'
+import { ArcGauge } from '@/components/instruments'
+import { StatusChip } from '@/components/ui/StatusChip'
 
 export function AnalysisCard({ analysis, onClick }) {
   const { title, type, status, date, score } = analysis
 
   return (
-    <button className="analysis-card" onClick={onClick}>
-      <div className="analysis-top">
-        <span className="file-icon">
-          <Activity size={17} />
-        </span>
+    <button type="button" className="an-card glass" onClick={onClick}>
+      <div className="an-top">
         <StatusChip status={status} />
+        <span className="hc-arrow" aria-hidden="true">
+          <ArrowUpRight size={14} />
+        </span>
       </div>
-      <strong>{title}</strong>
-      <span className="analysis-meta">
-        {type} · {date}
+      <strong className="an-title">{title}</strong>
+      <span className="an-meta">
+        {type}, {date}
       </span>
-      <div className="analysis-bottom">
-        <span>Score de confiance</span>
-        <b>
-          {score}
-          <small>/100</small>
-        </b>
-        <ArrowUpRight size={15} />
+      <div className="an-gauge">
+        <ArcGauge value={score} unit="/100" label="Score de confiance" size={200} />
       </div>
     </button>
   )

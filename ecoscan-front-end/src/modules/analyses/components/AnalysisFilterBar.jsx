@@ -8,7 +8,8 @@ const SORT_OPTIONS = [
   { key: 'score_desc', label: 'Meilleur score' },
 ]
 
-export function AnalysisFilterBar({ currentFilter, onSelectFilter, sortKey, onSelectSort }) {
+/** Onglets métriques : chaque filtre affiche son effectif (comme les onglets de l'image 8). */
+export function AnalysisFilterBar({ currentFilter, onSelectFilter, sortKey, onSelectSort, counts = {} }) {
   const cycleSort = () => {
     const idx = SORT_OPTIONS.findIndex((s) => s.key === sortKey)
     onSelectSort(SORT_OPTIONS[(idx + 1) % SORT_OPTIONS.length].key)
@@ -16,17 +17,25 @@ export function AnalysisFilterBar({ currentFilter, onSelectFilter, sortKey, onSe
   const current = SORT_OPTIONS.find((s) => s.key === sortKey) || SORT_OPTIONS[0]
 
   return (
-    <div className="view-toolbar">
-      <div className="segmented">
+    <div className="an-bar">
+      <div className="mtabs glass" role="tablist" aria-label="Filtrer les analyses">
         {ANALYSIS_FILTERS.map((filter) => (
-          <button key={filter} className={currentFilter === filter ? 'selected' : ''} onClick={() => onSelectFilter(filter)}>
-            {filter}
+          <button
+            key={filter}
+            type="button"
+            role="tab"
+            aria-selected={currentFilter === filter}
+            className={`mtab ${currentFilter === filter ? 'on' : ''}`}
+            onClick={() => onSelectFilter(filter)}
+          >
+            <span>{filter}</span>
+            <strong>{counts[filter] ?? 0}</strong>
           </button>
         ))}
       </div>
-      <button className="quiet-button" onClick={cycleSort}>
-        {sortKey === 'date_asc' ? <ArrowUpAZ size={14} /> : <ArrowDownAZ size={14} />}
-        Trier : {current.label}
+      <button type="button" className="secondary-button" onClick={cycleSort}>
+        {sortKey === 'date_asc' ? <ArrowUpAZ size={16} /> : <ArrowDownAZ size={16} />}
+        {current.label}
       </button>
     </div>
   )
