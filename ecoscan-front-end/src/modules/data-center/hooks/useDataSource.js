@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useCallback } from 'react'
-import { apiPost } from '@/lib/apiClient'
+import { apiGet, apiPost } from '@/lib/apiClient'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
@@ -45,13 +45,26 @@ export function useDataSources() {
       const fichierSource = await apiPostFormData('/energies/fichiers-sources/', formData)
 
       setUploadStage(2)
+
+      // Récupération éventuelle du premier compteur disponible
+      let compteurId = null
+      try {
+        const compteurs = await apiGet('/organisations/compteurs/')
+        compteurId = compteurs[0]?.id ?? null
+      } catch {
+        // L'absence de compteur configuré ne doit jamais bloquer l'import — reste optionnel
+      }
+
       // Création de l'enregistrement d'import rattaché au fichier déposé
-      const importCree = await apiPost('/energies/imports/', { fichier_source: fichierSource.id })
+      const importCree = await apiPost('/energies/imports/', {
+        fichier_source: fichierSource.id,
+        ...(compteurId ? { compteur: compteurId } : {}),
+      })
 
       // Gate 2 — pipeline OCR → classification → extraction → validation
       const importTraite = await apiPost(`/energies/imports/${importCree.id}/lancer/`)
 
-     if (importTraite.statut === 'TERMINE') {
+      if (importTraite.statut === 'TERMINE') {
         await apiPost('/analyses/integration/energy/', { import_id: importTraite.id })
       }
 
