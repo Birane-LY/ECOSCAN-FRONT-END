@@ -1,19 +1,27 @@
 import React from 'react'
 import { Zap } from 'lucide-react'
+import { GlassCard } from '@/components/instruments'
 
-export function MilestoneBanner({ goal }) {
-  const isUnlocked = goal >= 80
+const JALON = 80
+
+export function MilestoneBanner({ goal = 0 }) {
+  const unlocked = goal >= JALON
+  const reste = Math.max(0, JALON - goal)
 
   return (
-    <section className="milestone">
-      <div className="milestone-icon">
-        <Zap size={18} />
-      </div>
+    <GlassCard className="gl-milestone">
+      <span className="gl-milestone-icon">
+        <Zap size={19} />
+      </span>
       <div>
-        <strong>Prochain jalon : 80% de l’objectif</strong>
-        <span>Encore 8 points et votre équipe débloque le badge Élan collectif.</span>
+        <strong>Prochain jalon : {JALON} % de l’objectif</strong>
+        <span>
+          {unlocked
+            ? 'Jalon atteint : votre équipe débloque le badge Élan collectif.'
+            : `Encore ${reste} point${reste > 1 ? 's' : ''} pour débloquer le badge Élan collectif.`}
+        </span>
       </div>
-      <span className="milestone-badge">{isUnlocked ? 'Débloqué' : 'Bientôt'}</span>
-    </section>
+      <span className={`chip ${unlocked ? 'chip-lime' : ''}`}>{unlocked ? 'Débloqué' : 'Bientôt'}</span>
+    </GlassCard>
   )
 }

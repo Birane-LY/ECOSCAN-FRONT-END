@@ -1,5 +1,8 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { ArcGauge, GlassCard, TickProgress } from '@/components/instruments'
+
+const pctOf = (o) => (o?.valeur_cible ? Math.min(100, Math.round((o.progression_actuelle / o.valeur_cible) * 100)) : 0)
 
 export function GoalHero({ objectif, onUpdateTarget }) {
   const [editing, setEditing] = useState(false)
@@ -7,15 +10,21 @@ export function GoalHero({ objectif, onUpdateTarget }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
+  // L'objectif arrive après le premier rendu : on resynchronise le champ
+  useEffect(() => {
+    setValue(objectif?.valeur_cible ?? '')
+  }, [objectif?.id, objectif?.valeur_cible])
+
   if (!objectif) {
     return (
-      <section className="goal-hero">
-        <div><h2>Aucun objectif actif.</h2><p>Créez un objectif pour suivre votre trajectoire.</p></div>
-      </section>
+      <GlassCard className="gl-hero gl-hero-empty">
+        <h2>Aucun objectif actif.</h2>
+        <p>Créez un objectif pour suivre votre trajectoire.</p>
+      </GlassCard>
     )
   }
 
-  const pct = Math.min(100, Math.round((objectif.progression_actuelle / objectif.valeur_cible) * 100))
+  const pct = pctOf(objectif)
 
   const handleSave = async () => {
     setSaving(true)
@@ -31,41 +40,50 @@ export function GoalHero({ objectif, onUpdateTarget }) {
   }
 
   return (
-    <section className="goal-hero">
-      <div className="goal-score">
-        <div className="goal-ring" style={{ borderColor: `${pct >= 100 ? 'var(--green)' : 'var(--copper)'}` }}>
-          <strong>{pct}%</strong>
-          <span>atteint</span>
-        </div>
-        <div>
-          <h2>{objectif.nom}</h2>
-          <p>{objectif.progression_actuelle} / {objectif.valeur_cible} {objectif.unite}</p>
-        </div>
+    <GlassCard as="section" className="gl-hero">
+      <div className="gl-hero-gauge">
+        <ArcGauge value={pct} unit=" %" label="atteint" size={260} animate />
       </div>
 
-      <div className="forecast">
-        <span>CIBLE ACTUELLE</span>
+      <div className="gl-hero-copy">
+        <h2>{objectif.nom}</h2>
+        <p>
+          {objectif.progression_actuelle} sur {objectif.valeur_cible} {objectif.unite}
+        </p>
+        <TickProgress value={pct} ticks={34} label="Progression vers la cible" />
+      </div>
+
+      <div className="gl-hero-target">
+        <span className="k">Cible actuelle</span>
         {editing ? (
           <>
             <input
               type="number"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              style={{ width: 100, padding: 8, border: '1px solid var(--border)', borderRadius: 8 }}
+              aria-label="Nouvelle valeur cible"
             />
-            {error && <small style={{ color: 'var(--copper)' }}>{error}</small>}
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button className="primary-button" onClick={handleSave} disabled={saving}>{saving ? '…' : 'Valider'}</button>
-              <button className="secondary-button" onClick={() => setEditing(false)}>Annuler</button>
+            {error && <small className="gl-error">{error}</small>}
+            <div className="gl-hero-actions">
+              <button className="primary-button" onClick={handleSave} disabled={saving}>
+                {saving ? 'Enregistrement…' : 'Valider'}
+              </button>
+              <button className="secondary-button" onClick={() => setEditing(false)}>
+                Annuler
+              </button>
             </div>
           </>
         ) : (
           <>
-            <strong>{objectif.valeur_cible} {objectif.unite}</strong>
-            <button className="quiet-button" onClick={() => setEditing(true)}>Mettre à jour la cible</button>
+            <strong>
+              {objectif.valeur_cible} <small>{objectif.unite}</small>
+            </strong>
+            <button className="quiet-button" onClick={() => setEditing(true)}>
+              Mettre à jour la cible
+            </button>
           </>
         )}
       </div>
-    </section>
+    </GlassCard>
   )
 }
