@@ -1,22 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { apiGet } from '@/lib/apiClient'
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
-
-async function apiPatchOrg(path, body) {
-  const token = localStorage.getItem('access_token')
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error || `Erreur ${res.status}`)
-  }
-  return res.json()
-}
+import { apiGet, apiPatch } from '@/lib/apiClient'
 
 export function useSecurityConfig() {
   const [state, setState] = useState({ loading: true, error: null, config: null })
@@ -31,7 +15,7 @@ export function useSecurityConfig() {
   }, [])
 
   const updateConfig = useCallback(async (patch) => {
-    const config = await apiPatchOrg('/organisations/configuration-securite/', patch)
+    const config = await apiPatch('/organisations/configuration-securite/', patch)
     setState((s) => ({ ...s, config }))
     return config
   }, [])
