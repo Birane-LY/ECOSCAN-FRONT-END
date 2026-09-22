@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { WelcomeRow } from './WelcomeRow'
 import { DashboardCustomizer } from './DashboardCustomizer'
+import { HeroPanel } from './HeroPanel'
 import { BriefingCard } from './BriefingCard'
 import { InsightCard } from './InsightCard'
 import { EnergyChart } from './EnergyChart'
@@ -10,13 +11,15 @@ import { DecisionActions } from './DecisionActions'
 import { AssistantTeaser } from './AssistantTeaser'
 
 export function OverviewView({
-  // Données de l'utilisateur authentifié
   user,
   currentDate,
+  heroData,
   briefingData,
   insightData,
   decisionsData,
   assistantData,
+  chartSeries,
+  loading=false,
   period,
   setPeriod,
   point,
@@ -30,20 +33,16 @@ export function OverviewView({
   const [editMode, setEditMode] = useState(false)
   const [widgets, setWidgets] = useState(['briefing', 'chart', 'actions', 'insight'])
 
-  const handleToggleWidget = (id) => {
-    setWidgets((current) =>
-      current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
-    )
-  }
+  const toggleWidget = (id) =>
+    setWidgets((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
 
-  const handleToggleCompleted = (index) => {
-    setCompleted((current) =>
-      current.includes(index) ? current.filter((x) => x !== index) : [...current, index]
-    )
-  }
+  const toggleCompleted = (index) =>
+    setCompleted((cur) => (cur.includes(index) ? cur.filter((x) => x !== index) : [...cur, index]))
+
+  const showPair = widgets.includes('briefing') || widgets.includes('insight')
 
   return (
-    <>
+    <div className="ov">
       <WelcomeRow
         userName={user?.name || user?.firstName || user?.email?.split('@')[0]}
         currentDate={currentDate}
@@ -55,36 +54,42 @@ export function OverviewView({
       {editMode && (
         <DashboardCustomizer
           widgets={widgets}
-          onToggleWidget={handleToggleWidget}
+          onToggleWidget={toggleWidget}
           onSave={() => setEditMode(false)}
         />
       )}
 
-      <section className="flex flex-col gap-6 w-full mb-8">
-        {widgets.includes('briefing') && <BriefingCard {...briefingData} />}
-        {widgets.includes('insight') && <InsightCard {...insightData} onExplore={ask} />}
-      </section>
+      {/* Rendu dynamique du panneau Hero */}
+      <HeroPanel selectedPoint={point} {...heroData} />
+
+      {showPair && (
+        <div className="ov-pair">
+          {widgets.includes('briefing') && <BriefingCard {...briefingData} />}
+          {widgets.includes('insight') && <InsightCard {...insightData} onExplore={ask} />}
+        </div>
+      )}
 
       {widgets.includes('chart') && (
         <EnergyChart
           period={period}
           setPeriod={setPeriod}
-          selectedPoint={point}
           setSelectedPoint={setPoint}
+          data={chartSeries}
+          loading={loading}
         />
-      )}
+  )}
 
       {widgets.includes('actions') && (
-        <section className="lower-grid">
+        <div className="ov-lower">
           <DecisionActions
             decisions={decisionsData}
             completed={completed}
-            onToggleCompleted={handleToggleCompleted}
+            onToggleCompleted={toggleCompleted}
             onOpenDrawer={setDrawer}
           />
           <AssistantTeaser {...assistantData} onAsk={ask} />
-        </section>
+        </div>
       )}
-    </>
+    </div>
   )
 }

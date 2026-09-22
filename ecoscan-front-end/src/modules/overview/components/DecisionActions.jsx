@@ -1,71 +1,86 @@
 import React from 'react'
 import { ArrowUpRight, Check, ChevronRight, Zap } from 'lucide-react'
+import { GlassCard, TickProgress } from '@/components/instruments'
 import { SEED_DECISIONS } from '../constants'
 
-export function DecisionActions({ 
-  decisions = SEED_DECISIONS, 
-  completed = [], 
+// Accepte à la fois les décisions de démonstration (title/scope/value)
+// et les objectifs renvoyés par l'API (nom/description/valeur_cible/unite).
+function normalize(item) {
+  return {
+    title: item.title ?? item.nom ?? 'Sans titre',
+    scope: item.scope ?? item.description ?? (item.type ? String(item.type).toLowerCase().replace(/_/g, ' ') : ''),
+    impact: item.impact,
+    tagColor: item.tagColor,
+    value: item.value ?? (item.valeur_cible != null ? `${item.valeur_cible} ${item.unite ?? ''}`.trim() : null),
+    valueLabel: item.value ? 'impact estimé' : 'cible',
+  }
+}
+
+export function DecisionActions({
+  decisions = SEED_DECISIONS,
+  completed = [],
   streakDays = 4,
-  onToggleCompleted, 
-  onOpenDrawer 
+  onToggleCompleted,
+  onOpenDrawer,
 }) {
+  const list = (Array.isArray(decisions) ? decisions : []).map(normalize)
   const safeCompleted = Array.isArray(completed) ? completed : []
-  const total = decisions.length || 1
-  const percentage = Math.round((safeCompleted.length / total) * 100)
+  const pct = list.length ? Math.round((safeCompleted.length / list.length) * 100) : 0
 
   return (
-    <div className="actions-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">À FAIRE MAINTENANT</p>
-          <h2>Vos prochaines décisions</h2>
-        </div>
+    <GlassCard as="section" className="decisions">
+      <div className="panel-top">
+        <h2>Vos prochaines décisions</h2>
         <button className="quiet-button" onClick={() => onOpenDrawer?.('all-actions')}>
-          Voir tout <ArrowUpRight size={14} />
+          Voir tout <ArrowUpRight size={15} />
         </button>
       </div>
 
-      {decisions.map((item, i) => {
-        const isDone = safeCompleted.includes(i)
+      {list.length === 0 && (
+        <p className="dec-empty">Aucune décision à prendre. Créez un objectif ou importez des données pour en générer.</p>
+      )}
+
+      {list.map((item, i) => {
+        const done = safeCompleted.includes(i)
         return (
-          <div className={`action-row ${isDone ? 'done' : ''}`} key={item.title || i}>
+          <div className={`dec-row ${done ? 'done' : ''}`} key={`${item.title}-${i}`}>
             <button
-              className="check-button"
+              type="button"
+              className="dec-check"
+              aria-pressed={done}
+              aria-label={`${done ? 'Rouvrir' : 'Terminer'} : ${item.title}`}
               onClick={() => onToggleCompleted?.(i)}
-              aria-label={`Terminer ${item.title}`}
             >
-              {isDone ? <Check size={15} /> : <span />}
+              {done && <Check size={15} />}
             </button>
-            <div className="action-copy" onClick={() => onOpenDrawer?.(item.title)}>
+            <div className="dec-copy" onClick={() => onOpenDrawer?.(item.title)}>
               <strong>{item.title}</strong>
-              <span>{item.scope}</span>
+              {item.scope && <span>{item.scope}</span>}
             </div>
-            {item.impact && <span className={`impact-tag ${item.tagColor || ''}`}>{item.impact}</span>}
+            {item.impact && <span className="chip">{item.impact}</span>}
             {item.value && (
-              <div className="action-value">
+              <div className="dec-value">
                 <strong>{item.value}</strong>
-                <span>impact estimé</span>
+                <small>{item.valueLabel}</small>
               </div>
             )}
-            <ChevronRight size={16} />
+            <ChevronRight size={17} color="var(--ink-3)" />
           </div>
         )
       })}
 
-      <div className="progress-footer">
-        <div className="progress-ring">
-          <strong>{percentage}%</strong>
-        </div>
+      <div className="dec-foot">
+        <TickProgress value={pct} ticks={22} label="Décisions prises" />
         <div>
           <strong>
             {safeCompleted.length} décision{safeCompleted.length > 1 ? 's' : ''} prise{safeCompleted.length > 1 ? 's' : ''}
           </strong>
-          <span>Chaque action compte. Continuez votre élan.</span>
+          <small>{pct} % de la liste</small>
         </div>
-        <span className="streak-label">
+        <span className="chip chip-lime">
           <Zap size={13} /> Série de {streakDays} jours
         </span>
       </div>
-    </div>
+    </GlassCard>
   )
 }

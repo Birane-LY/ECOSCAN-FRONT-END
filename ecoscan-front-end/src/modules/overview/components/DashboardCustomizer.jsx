@@ -1,33 +1,29 @@
 import React from 'react'
 import { Check, Plus, Save } from 'lucide-react'
+import { GlassCard } from '@/components/instruments'
 import { DASHBOARD_WIDGETS } from '../constants'
 
 export function DashboardCustomizer({ widgets, onToggleWidget, onSave }) {
   return (
-    <section className="dashboard-editor">
+    <GlassCard as="section" className="customizer">
       <div>
-        <p className="eyebrow">MODE PERSONNALISATION</p>
-        <strong>Organisez votre cockpit.</strong>
-        <span>Réordonnez les modules ou masquez ce qui ne vous sert pas aujourd’hui.</span>
+        <strong>Organisez votre tableau de bord</strong>
+        <span className="hint">Affichez ou masquez les modules selon votre journée.</span>
       </div>
-      <div className="editor-widgets">
+      <div className="customizer-chips">
         {DASHBOARD_WIDGETS.map(({ id, label }) => {
-          const isSelected = widgets.includes(id)
+          const on = widgets.includes(id)
           return (
-            <button
-              key={id}
-              className={isSelected ? 'selected' : ''}
-              onClick={() => onToggleWidget(id)}
-            >
-              <span>{isSelected ? <Check size={13} /> : <Plus size={13} />}</span>
+            <button key={id} type="button" className={on ? 'on' : ''} aria-pressed={on} onClick={() => onToggleWidget(id)}>
+              {on ? <Check size={15} /> : <Plus size={15} />}
               {label}
             </button>
           )
         })}
       </div>
-      <button className="quiet-button" onClick={onSave}>
-        Sauvegarder la disposition <Save size={14} />
+      <button className="secondary-button" onClick={onSave}>
+        <Save size={15} /> Enregistrer la disposition
       </button>
-    </section>
+    </GlassCard>
   )
 }

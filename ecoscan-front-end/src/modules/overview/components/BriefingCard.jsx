@@ -1,41 +1,37 @@
 import React from 'react'
-import { Sparkles } from 'lucide-react'
+import { BigNumber, DotBars, EcoMark, GlassCard } from '@/components/instruments'
 
 export function BriefingCard({
-  title = "Vous êtes sur la bonne voie.",
-  description = "Votre consommation a baissé de 14,2% cette semaine. C’est votre meilleure performance depuis le début du trimestre.",
-  savedEnergy = "2 840",
-  savedEnergyUnit = "kWh",
-  co2Saved = "1,2",
-  co2Unit = "t",
-  badgeText = "À JOUR"
+  title = 'Vous êtes sur la bonne voie.',
+  description = 'Votre consommation a baissé de 14,2 % cette semaine. C’est votre meilleure performance depuis le début du trimestre.',
+  savedEnergy = '2 840',
+  savedEnergyUnit = 'kWh',
+  co2Saved = '1,2',
+  co2Unit = 't',
+  badgeText = 'À jour',
+  error,
 }) {
   return (
-    <article className="briefing-card">
-      <div className="card-kicker">
-        <Sparkles size={15} />
-        BRIEFING DU JOUR
-        {badgeText && <span className="live-badge">{badgeText}</span>}
+    <GlassCard as="article" tone="inverse" className="brief">
+      <div className="brief-head">
+        <EcoMark size={18} />
+        <span>Briefing du jour</span>
+        {badgeText && <span className="chip chip-lime">{badgeText}</span>}
       </div>
       <h2>{title}</h2>
       <p>{description}</p>
-      <div className="briefing-footer">
-        <div className="metric">
-          <span>Énergie économisée</span>
-          <strong>
-            {savedEnergy} <small>{savedEnergyUnit}</small>
-          </strong>
+      {error && <span className="brief-note">Les données se synchronisent : certains chiffres peuvent être en retard.</span>}
+      <div className="brief-foot">
+        <div>
+          <span className="metric-label">Énergie économisée</span>
+          <BigNumber value={savedEnergy} unit={savedEnergyUnit} />
         </div>
-        <div className="metric">
-          <span>Équivalent CO₂</span>
-          <strong>
-            {co2Saved} <small>{co2Unit}</small>
-          </strong>
+        <div>
+          <span className="metric-label">Équivalent CO₂</span>
+          <BigNumber value={co2Saved} unit={co2Unit} />
         </div>
-        <div className="mini-spark">
-          <span /><span /><span /><span /><span /><span /><span />
-        </div>
+        <DotBars values={[3, 4, 4, 6, 5, 4, 3]} label="Tendance de la semaine" />
       </div>
-    </article>
+    </GlassCard>
   )
 }

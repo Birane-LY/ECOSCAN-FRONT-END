@@ -1,35 +1,60 @@
-import React from 'react'
-import { ArrowUpRight, Leaf } from 'lucide-react'
+'use client'
+
+import React, { useMemo } from 'react'
+import { ArrowUpRight } from 'lucide-react'
+import { DotNumeral, GlassCard, RangeBars } from '@/components/instruments'
 
 export function InsightCard({
-  kicker = "INSIGHT DE L’IA",
-  title = "Le jeudi est votre journée clé.",
-  description = "Les pics entre 14h et 17h représentent 32% de votre consommation hebdomadaire.",
-  buttonText = "Explorer la tendance",
-  onExplore
+  title = 'Analyse des tendances',
+  description = 'Aucune donnée suffisante pour analyser la tendance.',
+  buttonText = 'Explorer la tendance',
+  share = '0',
+  barsData = [],
+  highlightIndex,
+  onExplore,
 }) {
+  // Détermine automatiquement l'index de la valeur maximale si aucun n'est fourni
+  const computedHighlightIndex = useMemo(() => {
+    if (typeof highlightIndex === 'number') return highlightIndex
+    if (!barsData || barsData.length === 0) return -1
+    
+    return barsData.reduce(
+      (best, item, index) => (item.value > (barsData[best]?.value || 0) ? index : best),
+      0
+    )
+  }, [barsData, highlightIndex])
+
+  const hasData = Array.isArray(barsData) && barsData.length > 0
+
   return (
-    <article className="insight-card">
-      <div className="insight-orbit">
-        <div className="orbit-core">
-          <Leaf size={20} />
-        </div>
-        <i />
-        <i />
-        <i />
-      </div>
-      <div>
-        <p className="card-kicker">{kicker}</p>
+    <GlassCard as="article" className="insight">
+      <div className="insight-top">
         <h3>{title}</h3>
-        {/* Texte en couleur claire pour assurer la lisibilité sur fond sombre */}
-        <p style={{ color: '#e2e8f0' }}>{description}</p>
-        <button
-          className="text-button"
-          onClick={() => onExplore?.(title)}
-        >
-          {buttonText} <ArrowUpRight size={14} />
-        </button>
+        <DotNumeral size={54} className="dotnum">
+          {share}
+        </DotNumeral>
       </div>
-    </article>
+      <p>{description}</p>
+      
+      {hasData && (
+        <div className="insight-bars">
+          <RangeBars 
+            data={barsData} 
+            compact 
+            highlight={computedHighlightIndex >= 0 ? computedHighlightIndex : undefined} 
+            unit="%" 
+          />
+        </div>
+      )}
+
+      <button 
+        type="button"
+        className="quiet-button" 
+        onClick={() => onExplore?.(title)} 
+        style={{ alignSelf: 'flex-start' }}
+      >
+        {buttonText} <ArrowUpRight size={15} />
+      </button>
+    </GlassCard>
   )
 }
