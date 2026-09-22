@@ -1,5 +1,4 @@
-export { Sidebar } from './Sidebar'
-export { Topbar } from './Topbar'
+export { TopNav } from './TopNav'
 export { BottomNav } from './BottomNav'
 export { CommandPalette } from './CommandPalette'
 export { NotificationsPopover } from './NotificationsPopover'

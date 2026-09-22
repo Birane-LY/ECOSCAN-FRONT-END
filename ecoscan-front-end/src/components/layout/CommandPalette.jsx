@@ -1,24 +1,40 @@
 'use client'
 
 import React from 'react'
-import { ChevronRight, Database, Gauge, Search, Sparkles, Target, TrendingDown } from 'lucide-react'
+import {
+  BrainCircuit,
+  ChevronRight,
+  Database,
+  Gauge,
+  MessageSquareText,
+  Search,
+  Settings2,
+  Target,
+  TrendingDown,
+  Wrench,
+} from 'lucide-react'
 
 const PALETTE_OPTIONS = [
-  ['overview', 'Vue d’ensemble', Gauge],
+  ['overview', 'Aperçu', Gauge],
   ['analyses', 'Analyses', TrendingDown],
   ['data', 'Données', Database],
   ['goals', 'Objectifs', Target],
-  ['assistant', 'Ouvrir l’assistant', Sparkles],
+  ['memory', 'Mémoire stratégique', BrainCircuit],
+  ['assistant', 'Ouvrir l’assistant', MessageSquareText],
+  ['features', 'Outils métier', Wrench],
+  ['settings', 'Paramètres', Settings2],
 ]
 
-export function CommandPalette({
-  open,
-  close,
-  paletteQuery,
-  setPaletteQuery,
-  go,
-}) {
+export function CommandPalette({ open, close, paletteQuery, setPaletteQuery, go }) {
   if (!open) return null
+
+  const q = paletteQuery.trim().toLowerCase()
+  const results = PALETTE_OPTIONS.filter(([, label]) => label.toLowerCase().includes(q))
+
+  const pick = (id) => {
+    go(id)
+    close()
+  }
 
   return (
     <div className="modal-backdrop" onClick={close}>
@@ -35,21 +51,17 @@ export function CommandPalette({
             autoFocus
             value={paletteQuery}
             onChange={(e) => setPaletteQuery(e.target.value)}
-            placeholder="Rechercher une vue, une action..."
+            onKeyDown={(e) => e.key === 'Enter' && results[0] && pick(results[0][0])}
+            placeholder="Rechercher une vue…"
           />
-          <kbd>ESC</kbd>
+          <kbd>Échap</kbd>
         </div>
 
-        <p>ACCÈS RAPIDE</p>
-        {PALETTE_OPTIONS.map(([id, label, Icon]) => (
-          <button
-            key={id}
-            onClick={() => {
-              go(id)
-              close()
-            }}
-          >
-            <Icon size={16} />
+        <p>Accès rapide</p>
+        {results.length === 0 && <p style={{ margin: '12px' }}>Aucune vue ne correspond à « {paletteQuery} ».</p>}
+        {results.map(([id, label, Icon]) => (
+          <button key={id} onClick={() => pick(id)}>
+            <Icon size={17} />
             <span>{label}</span>
             <ChevronRight size={14} />
           </button>
