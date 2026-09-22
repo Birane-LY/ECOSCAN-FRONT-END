@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { MoreHorizontal, Plus } from 'lucide-react'
+import { MoreHorizontal } from 'lucide-react'
+import { StatusChip } from '@/components/ui/StatusChip'
 import { useTeamMembers } from '@/modules/business-tools/hooks/useTeamMembers'
 
-export function TeamAdmin({ setDrawer }) {
+export function TeamAdmin() {
   const { membres, loading, error, inviter } = useTeamMembers()
   const [email, setEmail] = useState('')
   const [nom, setNom] = useState('')
@@ -18,7 +19,8 @@ export function TeamAdmin({ setDrawer }) {
     setInviteError(null)
     try {
       await inviter({ nom, email, role })
-      setNom(''); setEmail('')
+      setNom('')
+      setEmail('')
     } catch (err) {
       setInviteError(err.message)
     } finally {
@@ -28,41 +30,40 @@ export function TeamAdmin({ setDrawer }) {
 
   return (
     <>
-      <div className="admin-heading">
-        <div>
-          <p className="eyebrow">ÉQUIPE & RÔLES</p>
-          <h2>Les bonnes personnes autour des bonnes décisions.</h2>
-        </div>
+      <div className="ad-head">
+        <h2>Les bonnes personnes autour des bonnes décisions.</h2>
       </div>
 
       {loading && <p className="drawer-lead">Chargement…</p>}
       {error && <p className="drawer-lead">Erreur : {error}</p>}
 
-      <div className="member-list">
+      <div className="ad-list">
         {membres.map((m) => (
-          <div className="member-row" key={m.id}>
-            <div className="profile-avatar">{m.nom.split(' ').map((x) => x[0]).join('').toUpperCase()}</div>
-            <span>
+          <div className="ad-row" key={m.id}>
+            <span className="ad-avatar">{m.nom.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase()}</span>
+            <div>
               <strong>{m.nom}</strong>
               <small>{m.role}</small>
-            </span>
-            <span className={`status-chip ${m.actif ? 'ready' : ''}`}>{m.actif ? 'Actif' : 'Invitation en attente'}</span>
-            <button className="icon-button"><MoreHorizontal size={16} /></button>
+            </div>
+            <StatusChip status={m.actif ? 'Actif' : 'Invitation en attente'} />
+            <button className="icon-button" aria-label={`Actions pour ${m.nom}`}>
+              <MoreHorizontal size={16} />
+            </button>
           </div>
         ))}
       </div>
 
-      <form className="invite-form" onSubmit={handleInviteSubmit}>
-        <p className="eyebrow">INVITATION RAPIDE</p>
-        {inviteError && <p style={{ color: 'var(--copper)', fontSize: 11 }}>{inviteError}</p>}
+      <form className="ad-invite" onSubmit={handleInviteSubmit}>
+        <h3>Inviter un membre</h3>
+        {inviteError && <p className="form-error">{inviteError}</p>}
         <div>
-          <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom complet" required />
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@entreprise.com" type="email" required />
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
+          <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom complet" aria-label="Nom complet" required />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@entreprise.com" aria-label="Adresse e-mail" type="email" required />
+          <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="Rôle">
             <option value="UTILISATEUR_ORGANISATION">Opérations</option>
             <option value="CONSULTANT">Lecture seule</option>
           </select>
-          <button className="secondary-button" type="submit" disabled={inviting}>
+          <button className="primary-button" type="submit" disabled={inviting}>
             {inviting ? '…' : 'Envoyer'}
           </button>
         </div>

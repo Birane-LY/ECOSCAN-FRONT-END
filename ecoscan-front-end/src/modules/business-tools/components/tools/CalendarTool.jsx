@@ -1,105 +1,121 @@
 'use client'
 
-import React, { useState } from 'react'
-import { CalendarCheck, ChevronDown, Download, Save } from 'lucide-react'
+import React, { useMemo, useState } from 'react'
+import { CalendarCheck, ChevronLeft, ChevronRight, Download, Save } from 'lucide-react'
+import { GlassCard } from '@/components/instruments'
+
+const WEEK = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+const EVENTS = [12, 18, 25] // briefings planifiés (démonstration)
 
 export function CalendarTool({ briefingTime, setBriefingTime, setDrawer }) {
-  const [selectedDay, setSelectedDay] = useState(12)
+  const today = new Date()
   const [monthOffset, setMonthOffset] = useState(0)
+  const [selectedDay, setSelectedDay] = useState(today.getDate())
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState(false)
   const [synced, setSynced] = useState(false)
 
-  const month =
-    monthOffset === 0 ? 'Septembre 2026' : monthOffset < 0 ? 'Août 2026' : 'Octobre 2026'
-  const events = [12, 18, 25]
+  const cursor = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
+  const monthLabel = cursor.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  const monthName = cursor.toLocaleDateString('fr-FR', { month: 'long' })
+
+  const cells = useMemo(() => {
+    const first = (new Date(cursor.getFullYear(), cursor.getMonth(), 1).getDay() + 6) % 7 // lundi = 0
+    const count = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate()
+    return [...Array(first).fill(null), ...Array.from({ length: count }, (_, i) => i + 1)]
+  }, [cursor.getFullYear(), cursor.getMonth()]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isPlanned = EVENTS.includes(selectedDay)
 
   return (
-    <section className="calendar-tool">
-      <div className="calendar-card">
-        <div className="calendar-head">
-          <button
-            className="icon-button"
-            aria-label="Mois précédent"
-            onClick={() => setMonthOffset((v) => v - 1)}
-          >
-            <ChevronDown size={16} style={{ transform: 'rotate(90deg)' }} />
+    <div className="cal">
+      <GlassCard as="section" className="cal-grid-card">
+        <div className="cal-head">
+          <button className="icon-button" aria-label="Mois précédent" onClick={() => setMonthOffset((v) => v - 1)}>
+            <ChevronLeft size={17} />
           </button>
-          <strong>{month}</strong>
-          <button
-            className="icon-button"
-            aria-label="Mois suivant"
-            onClick={() => setMonthOffset((v) => v + 1)}
-          >
-            <ChevronDown size={16} style={{ transform: 'rotate(-90deg)' }} />
+          <strong>{monthLabel}</strong>
+          <button className="icon-button" aria-label="Mois suivant" onClick={() => setMonthOffset((v) => v + 1)}>
+            <ChevronRight size={17} />
           </button>
         </div>
 
-        <div className="calendar-week">
-          {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
+        <div className="cal-week" aria-hidden="true">
+          {WEEK.map((d, i) => (
             <span key={`${d}-${i}`}>{d}</span>
           ))}
         </div>
-
-        <div className="calendar-days">
-          {Array.from({ length: 30 }, (_, i) => i + 1).map((day) => (
-            <button
-              key={day}
-              className={`${selectedDay === day ? 'selected' : ''} ${events.includes(day) ? 'has-event' : ''}`}
-              onClick={() => { setSelectedDay(day); setSaved(false) }}
-            >
-              {day}
-              {events.includes(day) && <i />}
-            </button>
-          ))}
+        <div className="cal-days">
+          {cells.map((day, i) =>
+            day == null ? (
+              <span key={`e-${i}`} />
+            ) : (
+              <button
+                key={day}
+                type="button"
+                data-silent
+                aria-pressed={selectedDay === day}
+                className={`${selectedDay === day ? 'sel' : ''} ${EVENTS.includes(day) ? 'ev' : ''} ${monthOffset === 0 && day === today.getDate() ? 'today' : ''}`}
+                onClick={() => {
+                  setSelectedDay(day)
+                  setSaved(false)
+                }}
+              >
+                {day}
+              </button>
+            ),
+          )}
         </div>
-      </div>
+      </GlassCard>
 
-      <div className="briefing-editor">
-        <p className="eyebrow">BRIEFING DU {selectedDay} SEPTEMBRE</p>
-        <h2>{events.includes(selectedDay) ? 'Briefing énergie planifié.' : 'Planifiez un nouveau briefing.'}</h2>
-        <p>Recevez votre synthèse opérationnelle au moment où votre équipe commence sa journée.</p>
+      <GlassCard as="section" className="cal-editor">
+        <h2>{isPlanned ? 'Briefing énergie planifié.' : 'Planifiez un nouveau briefing.'}</h2>
+        <p>
+          Le {selectedDay} {monthName}. Recevez votre synthèse au moment où votre équipe commence sa journée.
+        </p>
 
-        <label>
+        <label className="fld">
           Heure de réception
           <input
             type="time"
             value={briefingTime}
-            onChange={(e) => { setBriefingTime(e.target.value); setEditing(true) }}
+            onChange={(e) => {
+              setBriefingTime(e.target.value)
+              setEditing(true)
+            }}
           />
         </label>
 
-        <div className="briefing-actions">
-          {editing || !events.includes(selectedDay) ? (
-            <button className="primary-button" onClick={() => { setSaved(true); setEditing(false) }}>
-              <Save size={15} />
+        <div className="cal-actions">
+          {editing || !isPlanned ? (
+            <button
+              className="primary-button"
+              onClick={() => {
+                setSaved(true)
+                setEditing(false)
+              }}
+            >
+              <Save size={16} />
               {saved ? 'Briefing enregistré' : 'Enregistrer le briefing'}
             </button>
           ) : (
             <button className="secondary-button" onClick={() => setEditing(true)}>
-              Modifier l'horaire
+              Modifier l’horaire
             </button>
           )}
-
           <button className="quiet-button" onClick={() => setSynced(true)}>
-            <CalendarCheck size={14} />
+            <CalendarCheck size={15} />
             {synced ? 'Calendrier connecté' : 'Synchroniser Google Calendar'}
           </button>
-
           <button className="quiet-button" onClick={() => setDrawer('briefing-export')}>
-            <Download size={14} />Exporter en iCal
+            <Download size={15} />Exporter en iCal
           </button>
         </div>
 
-        <div className="briefing-status">
-          <span className="status-chip ready">
-            <i />
-            {saved || synced
-              ? 'Mis à jour à l\'instant'
-              : `Prochaine session · demain à ${briefingTime}`}
-          </span>
-        </div>
-      </div>
-    </section>
+        <span className="chip chip-ok cal-status">
+          {saved || synced ? 'Mis à jour à l’instant' : `Prochaine session demain à ${briefingTime}`}
+        </span>
+      </GlassCard>
+    </div>
   )
 }

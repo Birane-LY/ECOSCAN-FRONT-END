@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Building2, CheckCircle2, Download, Eye, FileCheck2, FileText, Rocket } from 'lucide-react'
+import { Building2, Check, Download, Eye, FileCheck2, FileText, Rocket } from 'lucide-react'
+import { GlassCard } from '@/components/instruments'
 import { useFicheProjet } from '@/modules/business-tools/hooks/useFicheProjet'
 import { useLivrables } from '@/modules/business-tools/hooks/useLivrables'
 
@@ -20,7 +21,10 @@ export function ReportsTool({ setDrawer, template, setTemplate, period, setPerio
   const [genError, setGenError] = useState(null)
 
   const handleGenerate = async () => {
-    if (!ficheProjet) { setGenError("Aucune fiche projet trouvée pour votre organisation."); return }
+    if (!ficheProjet) {
+      setGenError('Aucune fiche projet trouvée pour votre organisation.')
+      return
+    }
     setGenerating(true)
     setGenError(null)
     try {
@@ -33,66 +37,80 @@ export function ReportsTool({ setDrawer, template, setTemplate, period, setPerio
     }
   }
 
-  const dernierLivrable = [...livrables].sort((a, b) => new Date(b.date_generation) - new Date(a.date_generation))[0]
+  const dernier = [...livrables].sort((a, b) => new Date(b.date_generation) - new Date(a.date_generation))[0]
 
   return (
-    <section className="reports-tool">
-      <div className="template-grid">
+    <div className="rp">
+      <div className="rp-templates" role="radiogroup" aria-label="Destinataire du rapport">
         {TEMPLATES.map(({ id, title, desc, icon: Icon }) => (
-          <button key={id} className={`template-card ${template === id ? 'selected' : ''}`} onClick={() => setTemplate(id)}>
-            <Icon size={20} />
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={template === id}
+            className={`rp-template glass ${template === id ? 'on' : ''}`}
+            onClick={() => setTemplate(id)}
+          >
+            <span className="rp-template-icon">
+              <Icon size={20} />
+            </span>
             <strong>{title}</strong>
             <span>{desc}</span>
-            {template === id && <CheckCircle2 size={16} />}
+            {template === id && (
+              <i className="rp-check">
+                <Check size={14} />
+              </i>
+            )}
           </button>
         ))}
       </div>
 
-      <div className="report-builder">
+      <GlassCard as="section" className="rp-builder">
         <div>
-          <p className="eyebrow">CONFIGURATION DU LIVRABLE</p>
           <h2>Un rapport prêt à être partagé.</h2>
-          <p>Sélectionnez une période, EcoScan génère le document à partir de vos données réelles.</p>
+          <p>Choisissez une période : EcoScan génère le document à partir de vos données réelles.</p>
         </div>
-        <div className="report-controls">
-          <label>
-            Période
-            <select value={period} onChange={(e) => setPeriod(e.target.value)}>
-              <option value="month">Septembre 2026</option>
-              <option value="quarter">T3 2026</option>
-              <option value="year">Année 2026</option>
-            </select>
-          </label>
-        </div>
-        {genError && <p style={{ color: 'var(--copper)', fontSize: 11 }}>{genError}</p>}
-        <div className="report-actions">
+        <label className="fld">
+          Période
+          <select value={period} onChange={(e) => setPeriod(e.target.value)}>
+            <option value="month">Septembre 2026</option>
+            <option value="quarter">T3 2026</option>
+            <option value="year">Année 2026</option>
+          </select>
+        </label>
+        {genError && <p className="form-error">{genError}</p>}
+        <div className="rp-actions">
           <button className="secondary-button" onClick={() => setDrawer('report-preview')}>
-            <Eye size={15} />Prévisualiser
+            <Eye size={16} />Prévisualiser
           </button>
           <button className="primary-button" onClick={handleGenerate} disabled={generating}>
-            <Download size={15} />{generating ? 'Génération…' : 'Générer le rapport'}
+            <Download size={16} />{generating ? 'Génération…' : 'Générer le rapport'}
           </button>
         </div>
-      </div>
+      </GlassCard>
 
-      <div className="report-history">
-        <p className="eyebrow">HISTORIQUE</p>
+      <GlassCard as="section" className="rp-history">
+        <h3>Dernier rapport</h3>
         {loading && <p className="drawer-lead">Chargement…</p>}
         {error && <p className="drawer-lead">Erreur : {error}</p>}
-        {!loading && !error && !dernierLivrable && <p className="drawer-lead">Aucun rapport généré pour le moment.</p>}
-        {dernierLivrable && (
-          <div>
-            <FileCheck2 size={15} />
+        {!loading && !error && !dernier && <p className="drawer-lead">Aucun rapport généré pour le moment.</p>}
+        {dernier && (
+          <div className="rp-last">
+            <FileCheck2 size={20} />
             <span>
-              <strong>{dernierLivrable.nom}</strong>
-              <small>{dernierLivrable.type} · {dernierLivrable.statut} · {new Date(dernierLivrable.date_generation).toLocaleDateString('fr-FR')}</small>
+              <strong>{dernier.nom}</strong>
+              <small>
+                {dernier.type}, {dernier.statut}, {new Date(dernier.date_generation).toLocaleDateString('fr-FR')}
+              </small>
             </span>
-            {dernierLivrable.url_fichier && (
-              <a href={dernierLivrable.url_fichier} target="_blank" rel="noreferrer"><Download size={15} /></a>
+            {dernier.url_fichier && (
+              <a className="icon-button" href={dernier.url_fichier} target="_blank" rel="noreferrer" aria-label="Télécharger le rapport">
+                <Download size={16} />
+              </a>
             )}
           </div>
         )}
-      </div>
-    </section>
+      </GlassCard>
+    </div>
   )
 }

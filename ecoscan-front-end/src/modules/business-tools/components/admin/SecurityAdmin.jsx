@@ -1,44 +1,37 @@
 import React from 'react'
 import { ArrowUpRight } from 'lucide-react'
-import { SettingToggle } from '@/components/ui'
+import { SettingToggle } from '@/components/ui/SettingToggle'
 
 export function SecurityAdmin({ twoFactor, setTwoFactor, setDrawer }) {
   return (
     <>
-      <div className="admin-heading">
-        <div>
-          <p className="eyebrow">ACCÈS & SÉCURITÉ</p>
-          <h2>Un espace de travail digne de confiance.</h2>
-        </div>
-        <span className="status-chip ready">Sécurité renforcée</span>
+      <div className="ad-head">
+        <h2>Un espace de travail digne de confiance.</h2>
+        <span className="chip chip-ok">Sécurité renforcée</span>
       </div>
 
-      <div className="security-list">
-        <div>
-          <span>
+      <div className="ad-list">
+        <div className="ad-row">
+          <div>
             <strong>Authentification à deux facteurs</strong>
             <small>Recommandée pour tous les administrateurs</small>
-          </span>
-          <SettingToggle
-            label=""
-            checked={twoFactor}
-            setChecked={setTwoFactor}
-          />
+          </div>
+          <SettingToggle label="" checked={twoFactor} setChecked={setTwoFactor} />
         </div>
-        <div>
-          <span>
+        <div className="ad-row">
+          <div>
             <strong>Sessions actives</strong>
-            <small>MacBook Pro · Dakar · Session actuelle</small>
-          </span>
+            <small>MacBook Pro, Dakar, session actuelle</small>
+          </div>
           <button className="quiet-button" onClick={() => setDrawer('sessions')}>
             Gérer les sessions <ArrowUpRight size={14} />
           </button>
         </div>
-        <div>
-          <span>
+        <div className="ad-row">
+          <div>
             <strong>Mot de passe</strong>
             <small>Dernière modification il y a 42 jours</small>
-          </span>
+          </div>
           <button className="secondary-button" onClick={() => setDrawer('password')}>
             Changer
           </button>
