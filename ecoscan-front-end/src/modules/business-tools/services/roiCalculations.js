@@ -29,9 +29,3 @@ export function calculatePayback(cost, savings) {
 export function calculateNetGain(cost, savings) {
   return savings * 12 - cost
 }
-
-export const ROI_PRESETS = [
-  { name: 'LED', cost: 500000, savings: 75000 },
-  { name: 'Climatisation', cost: 1200000, savings: 180000 },
-  { name: 'Machines', cost: 2500000, savings: 290000 },
-]

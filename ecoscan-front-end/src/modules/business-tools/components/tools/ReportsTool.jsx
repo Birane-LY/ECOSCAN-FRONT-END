@@ -37,7 +37,9 @@ export function ReportsTool({ setDrawer, template, setTemplate, period, setPerio
     }
   }
 
-  const dernier = [...livrables].sort((a, b) => new Date(b.date_generation) - new Date(a.date_generation))[0]
+  const dernier = [...livrables]
+    .filter((l) => l.date_generation)
+    .sort((a, b) => new Date(b.date_generation) - new Date(a.date_generation))[0]
 
   return (
     <div className="rp">
