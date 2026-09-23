@@ -1,49 +1,101 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
 export const API_PREFIX = {
-  ACCOUNTS: '', // accounts.urls est inclus directement sous /api/
+  ACCOUNTS: '',
   ORGANISATIONS: '/organisations',
   ENERGIES: '/energies',
   ANALYSES: '/analyses',
 }
 
 function authHeaders() {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  const token =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('access_token')
+      : null
+
+  return token
+    ? { Authorization: `Bearer ${token}` }
+    : {}
+}
+
+function buildUrl(path) {
+  return `${API_BASE_URL.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
 }
 
 export async function apiGet(path) {
-  const res = await fetch(`${API_BASE_URL}${path}`, { headers: authHeaders() })
+  const url = buildUrl(path)
+
+  console.log('[API GET]', url)
+
+  const res = await fetch(url, {
+    headers: authHeaders(),
+  })
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.detail || body.error || `Erreur ${res.status} sur ${path}`)
+
+    throw new Error(
+      body.detail ||
+      body.error ||
+      `Erreur ${res.status} sur ${url}`
+    )
   }
+
   const data = await res.json()
+
   return data.results ?? data
 }
 
-export async function apiPost(path, body) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || err.error || `Erreur ${res.status} sur ${path}`)
-  }
-  return res.json()
-}
+export async function apiPost(path, body = {}, options = {}) {
+  const url = buildUrl(path)
 
-export async function apiPatch(path, body) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+  console.log('[API POST]', url)
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...authHeaders(),
+    ...(options.headers || {}),
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    method: 'POST',
+    headers,
     body: JSON.stringify(body),
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || JSON.stringify(err) || `Erreur ${res.status}`)
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+
+    let message = ''
+
+    if (
+      typeof errorData === 'object' &&
+      errorData !== null
+    ) {
+      if (errorData.detail) {
+        message = errorData.detail
+      } else if (errorData.error) {
+        message = errorData.error
+      } else {
+        message = Object.entries(errorData)
+          .map(
+            ([champ, msgs]) =>
+              `${champ}: ${
+                Array.isArray(msgs)
+                  ? msgs.join(', ')
+                  : msgs
+              }`
+          )
+          .join(' | ')
+      }
+    }
+
+    throw new Error(
+      message || `Erreur ${response.status} sur ${url}`
+    )
   }
-  return res.json()
+
+  return response.json()
 }
