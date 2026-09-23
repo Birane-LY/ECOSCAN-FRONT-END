@@ -1,4 +1,5 @@
 'use client'
+
 import { useState, useRef, useCallback } from 'react'
 import { apiGet, apiPost } from '@/lib/apiClient'
 
@@ -26,12 +27,29 @@ async function apiPostFormData(path, formData) {
 
 export function useDataSources() {
   const [uploadOpen, setUploadOpen] = useState(false)
-  const [uploadStage, setUploadStage] = useState(0) // 0 idle · 1-2 en cours · 3 terminé (succès ou échec, voir result)
+  const [uploadStage, setUploadStage] = useState(0) // 0 idle · 1-2 en cours · 3 terminé
   const [result, setResult] = useState(null)
   const fileRef = useRef(null)
 
   const openUpload = () => { setUploadOpen(true); setUploadStage(0); setResult(null) }
   const closeUpload = () => { setUploadOpen(false); setUploadStage(0); setResult(null) }
+
+  // Création manuelle d'une source de données via l'API
+  const handleCreateSource = useCallback(async (formData = {}) => {
+    try {
+      const response = await apiPost('/energies/sources-donnees/', {
+        nom: formData.nom || "Compteur Principal",
+        type_source: formData.type_source || "COMPTEUR", // "COMPTEUR", "MANUEL", "WOYOFAL", etc.
+        description: formData.description || "",
+      })
+
+      console.log("Source de données créée :", response)
+      return response
+    } catch (error) {
+      console.error("Erreur lors de la création de la source :", error)
+      throw error
+    }
+  }, [])
 
   const processUpload = useCallback(async (fileOrEvent) => {
     const file = fileOrEvent?.target?.files ? fileOrEvent.target.files[0] : fileOrEvent
@@ -82,7 +100,14 @@ export function useDataSources() {
   }, [])
 
   return {
-    uploadOpen, uploadStage, result, fileRef,
-    openUpload, closeUpload, processUpload, finishUpload,
+    uploadOpen, 
+    uploadStage, 
+    result, 
+    fileRef,
+    openUpload, 
+    closeUpload, 
+    processUpload, 
+    finishUpload,
+    handleCreateSource, 
   }
 }
