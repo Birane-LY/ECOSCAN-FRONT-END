@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { GlassCard } from '@/components/instruments'
-import { SettingToggle } from '@/components/ui/StatusChip'
+import { SettingToggle } from '@/components/ui/SettingToggle'
 
 const ROWS = [
   { key: 'alertes_email', label: 'Alertes de dépassement par email', desc: 'Un email dès qu’un seuil est franchi.' },
