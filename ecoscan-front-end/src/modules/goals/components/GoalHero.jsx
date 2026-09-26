@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { ArcGauge, GlassCard, TickProgress } from '@/components/instruments'
 
+const fmt = (v) => Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 2 })
 const pctOf = (o) => (o?.valeur_cible ? Math.min(100, Math.round((o.progression_actuelle / o.valeur_cible) * 100)) : 0)
 
 export function GoalHero({ objectif, onUpdateTarget }) {
@@ -48,7 +49,7 @@ export function GoalHero({ objectif, onUpdateTarget }) {
       <div className="gl-hero-copy">
         <h2>{objectif.nom}</h2>
         <p>
-          {objectif.progression_actuelle} sur {objectif.valeur_cible} {objectif.unite}
+          {fmt(objectif.progression_actuelle)} sur {fmt(objectif.valeur_cible)} {objectif.unite}
         </p>
         <TickProgress value={pct} ticks={34} label="Progression vers la cible" />
       </div>
@@ -76,7 +77,7 @@ export function GoalHero({ objectif, onUpdateTarget }) {
         ) : (
           <>
             <strong>
-              {objectif.valeur_cible} <small>{objectif.unite}</small>
+              {fmt(objectif.valeur_cible)} <small>{objectif.unite}</small>
             </strong>
             <button className="quiet-button" onClick={() => setEditing(true)}>
               Mettre à jour la cible

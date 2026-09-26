@@ -14,6 +14,7 @@ export function CreateGoalModal({ onClose, onCreated }) {
   const [unite, setUnite] = useState('kWh')
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
+  const [activer, setActiver] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -21,6 +22,11 @@ export function CreateGoalModal({ onClose, onCreated }) {
     e.preventDefault()
     if (!organisation) {
       setError('Aucune organisation associée à votre compte.')
+      return
+    }
+    // date_debut et date_fin sont obligatoires côté modèle : envoyer null donnait une erreur 400
+    if (dateFin < dateDebut) {
+      setError('La date de fin ne peut pas être antérieure à la date de début.')
       return
     }
     setSaving(true)
@@ -33,8 +39,9 @@ export function CreateGoalModal({ onClose, onCreated }) {
         type,
         valeur_cible: Number(valeurCible),
         unite,
-        date_debut: dateDebut || null,
-        date_fin: dateFin || null,
+        date_debut: dateDebut,
+        date_fin: dateFin,
+        statut: activer ? 'ACTIF' : 'BROUILLON',
       })
       onCreated?.()
       onClose()
@@ -83,11 +90,15 @@ export function CreateGoalModal({ onClose, onCreated }) {
           </label>
           <label className="fld">
             Date de début
-            <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
+            <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} required />
           </label>
           <label className="fld">
             Date de fin
-            <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} />
+            <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} required />
+          </label>
+          <label className="fld span-2" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={activer} onChange={(e) => setActiver(e.target.checked)} />
+            Activer l’objectif immédiatement (suivi de la progression)
           </label>
           <button className="primary-button span-2" type="submit" disabled={saving}>
             {saving ? 'Création…' : "Créer l'objectif"}

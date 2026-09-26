@@ -7,12 +7,15 @@ import { GoalHero } from "@/modules/goals/components/GoalHero";
 import { GoalMetricCard } from "@/modules/goals/components/GoalMetricCard";
 import { MilestoneBanner } from "@/modules/goals/components/MilestoneBanner";
 import { useGoalsData } from "@/modules/goals/hooks/useGoalsData";
+import { useProgressionObjectifs } from "@/modules/goals/hooks/useProgressionObjectifs";
 import { CreateGoalModal } from "@/modules/goals/components/CreateGoalModal";
 
 const pct = (o) => (o.valeur_cible ? (o.progression_actuelle / o.valeur_cible) * 100 : 0);
 
 export function GoalsView() {
   const { objectifs, loading, error, updateObjectif, reload } = useGoalsData();
+  const { mesures, reload: reloadMesures } = useProgressionObjectifs();
+  const recharger = () => { reload(); reloadMesures(); };
   const [createOpen, setCreateOpen] = useState(false);
 
   const actifs = objectifs.filter((o) => o.statut === "ACTIF");
@@ -47,13 +50,13 @@ export function GoalsView() {
 
       <div className="gl-grid">
         {objectifs.map((o) => (
-          <GoalMetricCard key={o.id} objectif={o} onChanged={reload} />
+          <GoalMetricCard key={o.id} objectif={o} mesure={mesures[o.id]} onChanged={recharger} />
         ))}
       </div>
 
       <MilestoneBanner goal={globalProgress} />
 
-      {createOpen && <CreateGoalModal onClose={() => setCreateOpen(false)} onCreated={reload} />}
+      {createOpen && <CreateGoalModal onClose={() => setCreateOpen(false)} onCreated={recharger} />}
     </div>
   );
 }
