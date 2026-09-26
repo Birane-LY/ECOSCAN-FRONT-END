@@ -5,13 +5,18 @@ import { Plus } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader' 
 import { AnalysisCard } from './AnalysisCard'
 import { AnalysisFilterBar } from './AnalysisFilterBar'
+import { AnomalyList } from './AnomalyList'
+import { CreateRecommendationModal } from './CreateRecommendationModal'
 import { OpportunitiesBanner } from './OpportunitiesBanner'
 import { useAnalysesData } from '../hooks/useAnalysesData'
 import { useRecommandations } from '../hooks/useRecommandations'
+import { useAnomalies } from '../hooks/useAnomalies'
 
-export function AnalysesView({ setDrawer }) {
+export function AnalysesView({ setDrawer, openUpload }) {
   const { analyses, loading, error } = useAnalysesData()
-  const { recommandations } = useRecommandations()
+  const { recommandations, reload: reloadRecommandations } = useRecommandations()
+  const { anomalies, reload: reloadAnomalies } = useAnomalies()
+  const [anomalieACreer, setAnomalieACreer] = useState(null)
   const [filter, setFilter] = useState('Toutes')
   const [sortKey, setSortKey] = useState('date_desc')
 
@@ -42,7 +47,7 @@ export function AnalysesView({ setDrawer }) {
         title="Analyses"
         subtitle="Transformez vos données en décisions qui avancent."
         action={
-          <button className="primary-button" onClick={() => setDrawer('new-analysis')}>
+          <button className="primary-button" onClick={openUpload ?? (() => setDrawer('new-analysis'))}>
             <Plus size={17} />
             Nouvelle analyse
           </button>
@@ -65,6 +70,15 @@ export function AnalysesView({ setDrawer }) {
         </p>
       )}
 
+      <AnomalyList
+        anomalies={anomalies}
+        onChanged={() => {
+          reloadAnomalies()
+          reloadRecommandations()
+        }}
+        onCreateReco={setAnomalieACreer}
+      />
+
       <section className="an-grid">
         {visibleAnalyses.map((analysis) => (
           <AnalysisCard key={analysis.id} analysis={analysis} onClick={() => setDrawer(analysis.id)} />
@@ -72,6 +86,15 @@ export function AnalysesView({ setDrawer }) {
       </section>
 
       <OpportunitiesBanner count={recommandations.length} onExplore={() => setDrawer('opportunities')} />
+
+      {anomalieACreer && (
+        <CreateRecommendationModal
+          anomalie={anomalieACreer}
+          onClose={() => setAnomalieACreer(null)}
+          onCreated={() => { reloadAnomalies(); reloadRecommandations() }}
+        />
+      )}
     </div>
   )
 }
+
