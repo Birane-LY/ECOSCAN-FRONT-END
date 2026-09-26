@@ -1,12 +1,12 @@
-'use client'
+﻿'use client'
 
 import React, { useState } from 'react'
 import { ChevronDown, ChevronUp, Database, ShieldCheck, TrendingDown, TrendingUp, Zap } from 'lucide-react'
 
 const STATUT_LABELS = {
-  A_VERIFIER: { label: 'À vérifier', className: 'review' },
-  PARTIELLEMENT_CONFIRMEE: { label: 'Partiellement confirmée', className: 'review' },
-  CONFIRMEE: { label: 'Confirmée', className: 'ready' },
+  A_VERIFIER: { label: 'Ã€ vÃ©rifier', className: 'review' },
+  PARTIELLEMENT_CONFIRMEE: { label: 'Partiellement confirmÃ©e', className: 'review' },
+  CONFIRMEE: { label: 'ConfirmÃ©e', className: 'ready' },
 }
 
 export function MemoryCard({ memoire }) {
@@ -38,13 +38,13 @@ export function MemoryCard({ memoire }) {
         <>
           {memoire.hypothese_texte && (
             <div className="drawer-section">
-              <p className="eyebrow">HYPOTHÈSE CONFIRMÉE</p>
+              <p className="eyebrow">HYPOTHÃˆSE CONFIRMÃ‰E</p>
               <p style={{ fontSize: 11, color: 'var(--foreground)', lineHeight: 1.55 }}>{memoire.hypothese_texte}</p>
             </div>
           )}
           {memoire.action_texte && (
             <div className="drawer-section">
-              <p className="eyebrow">ACTION MENÉE</p>
+              <p className="eyebrow">ACTION MENÃ‰E</p>
               <p style={{ fontSize: 11, color: 'var(--foreground)', lineHeight: 1.55 }}>{memoire.action_texte}</p>
             </div>
           )}
@@ -55,16 +55,16 @@ export function MemoryCard({ memoire }) {
         <div className="drawer-metrics" style={{ margin: '14px 0' }}>
           <div>
             <span>Impact attendu</span>
-            <strong>{memoire.impact_attendu_fcfa != null ? `${Number(memoire.impact_attendu_fcfa).toLocaleString('fr-FR')} FCFA` : '—'}</strong>
+            <strong>{memoire.impact_attendu_fcfa != null ? `${Number(memoire.impact_attendu_fcfa).toLocaleString('fr-FR')} FCFA` : 'â€”'}</strong>
           </div>
           <div>
-            <span>Impact mesuré</span>
-            <strong>{memoire.impact_mesure_fcfa != null ? `${Number(memoire.impact_mesure_fcfa).toLocaleString('fr-FR')} FCFA` : 'Non mesuré'}</strong>
+            <span>Impact mesurÃ©</span>
+            <strong>{memoire.impact_mesure_fcfa != null ? `${Number(memoire.impact_mesure_fcfa).toLocaleString('fr-FR')} FCFA` : 'Non mesurÃ©'}</strong>
           </div>
           <div>
-            <span>Taux de réalisation</span>
+            <span>Taux de rÃ©alisation</span>
             <strong className={ecart != null ? (ecart >= 0 ? 'positive' : 'negative') : ''}>
-              {memoire.taux_realisation != null ? `${memoire.taux_realisation}%` : '—'}
+              {memoire.taux_realisation != null ? `${memoire.taux_realisation}%` : 'â€”'}
             </strong>
           </div>
         </div>
@@ -73,7 +73,7 @@ export function MemoryCard({ memoire }) {
       {ecart != null && (
         <p style={{ fontSize: 10, color: ecart >= 0 ? 'var(--green)' : 'var(--copper)', display: 'flex', alignItems: 'center', gap: 5 }}>
           {ecart >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-          {ecart >= 0 ? 'Impact réel supérieur à la prévision' : 'Impact réel inférieur à la prévision'}
+          {ecart >= 0 ? 'Impact rÃ©el supÃ©rieur Ã  la prÃ©vision' : 'Impact rÃ©el infÃ©rieur Ã  la prÃ©vision'}
           {' '}({ecart >= 0 ? '+' : ''}{ecart.toLocaleString('fr-FR')} FCFA)
         </p>
       )}
@@ -87,10 +87,10 @@ export function MemoryCard({ memoire }) {
 
       <div className="analysis-bottom" style={{ marginTop: 16 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {memoire.indexee_rag && <><Database size={12} /> Indexée dans l'assistant IA</>}
+          {memoire.indexee_rag && <><Database size={12} /> IndexÃ©e dans l'EcoScan</>}
         </span>
         <button className="quiet-button" onClick={() => setExpanded((v) => !v)} style={{ marginLeft: 'auto' }}>
-          {expanded ? <>Réduire <ChevronUp size={14} /></> : <>Voir le détail <ChevronDown size={14} /></>}
+          {expanded ? <>RÃ©duire <ChevronUp size={14} /></> : <>Voir le dÃ©tail <ChevronDown size={14} /></>}
         </button>
       </div>
     </article>

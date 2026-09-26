@@ -60,8 +60,6 @@ export function AssistantView({
                 key={`${m.from}-${i}`}
                 message={m}
                 isAi={m.from === 'ai'}
-                isFollowUp={i > 0}
-                onActionClick={ask}
               />
             ))}
             {thinking && (
