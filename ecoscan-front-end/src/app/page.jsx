@@ -1,9 +1,16 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/modules/auth/hooks/useAuth";
 import { LoginScreen } from "@/modules/auth/components/LoginScreen";
+import { ActivateAccountScreen } from "@/modules/auth/components/ActivateAccountScreen";
 import { OverviewView } from "@/modules/overview/components/OverviewView";
 import { useOverviewData } from "@/modules/overview/hooks/useOverviewData";
 import { CaptureModal } from "@/components/layout/CaptureModal";
@@ -76,6 +83,21 @@ export default function MainPage() {
   // --- Navigation & mise en page ---
   const [view, setView] = useState("overview");
   const [drawer, setDrawer] = useState(null);
+  const [activationParams, setActivationParams] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const uid = params.get("uid");
+    const token = params.get("token");
+
+    if (!uid || !token) return undefined;
+
+    const frame = window.requestAnimationFrame(() => {
+      setActivationParams({ uid, token });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   // --- Thème (Lumière / Nuit), synchronisé avec les préférences ---
   const [darkMode, setDarkMode] = useState(false);
@@ -170,6 +192,17 @@ export default function MainPage() {
     if (authenticated && isSuperAdmin) router.replace("/admin");
   }, [authenticated, isSuperAdmin, router]);
 
+  if (!authenticated && activationParams) {
+    return (
+      <ActivateAccountScreen
+        {...activationParams}
+        onCompleted={() => {
+          setActivationParams(null);
+          router.replace("/");
+        }}
+      />
+    );
+  }
   if (!authenticated) return <LoginScreen onLogin={login} />;
   if (isSuperAdmin) return null;
 
@@ -234,7 +267,7 @@ export default function MainPage() {
           />
         );
       case "analyses":
-        return <AnalysesView setDrawer={setDrawer} />;
+        return <AnalysesView setDrawer={setDrawer} openUpload={openUpload} />;
       case "data":
         return (
           <DataCenterView
@@ -334,7 +367,10 @@ export default function MainPage() {
       />
 
       {actionToast && (
-        <ActionToast message={actionToast} onClose={() => setActionToast(null)} />
+        <ActionToast
+          message={actionToast}
+          onClose={() => setActionToast(null)}
+        />
       )}
 
       <CaptureModal
@@ -349,7 +385,13 @@ export default function MainPage() {
           result={dataSource.result}
           fileRef={dataSource.fileRef}
           onProcess={dataSource.processUpload}
-          onFinish={() => dataSource.finishUpload(() => fileSources.reload())}
+          onFinish={() =>
+            dataSource.finishUpload(() => {
+              fileSources.reload();
+              go("analyses");
+              announceAction("Analyse générée avec succès !");
+            })
+          }
           onClose={dataSource.closeUpload}
         />
       )}

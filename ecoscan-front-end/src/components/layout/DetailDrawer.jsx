@@ -211,10 +211,99 @@ function Metric({ label, value }) {
   )
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function fmt(n, decimals = 0) {
+  if (n == null || n === '' || isNaN(Number(n))) return '—'
+  return Number(n).toLocaleString('fr-FR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })
+}
+
+// ─── Senelec Invoice Decoder panel ──────────────────────────────────────────
+
+function SenelecDecoderPanel({ df }) {
+  const alerteT3 = df.alerte_tranche_3
+  const partT3 = df.part_tranche_3_pct != null ? Number(df.part_tranche_3_pct) : null
+
+  return (
+    <div className="dw-section">
+      <h3>🔍 Décodeur Facture Senelec</h3>
+
+      {alerteT3 && (
+        <div className="dw-alert dw-alert--warn">
+          ⚠️ <strong>Tranche 3 activée</strong> — {partT3 != null ? `${fmt(partT3, 1)} %` : ''} de votre
+          consommation est facturée au tarif le plus élevé ({fmt(df.consommation_tranche_3)} kWh).
+        </div>
+      )}
+
+      <div className="dw-metrics">
+        <Metric label="Montant net payé" value={df.montant_net_paye != null ? `${fmt(df.montant_net_paye)} FCFA` : '—'} />
+        <Metric label="Coût / jour" value={df.cout_par_jour != null ? `${fmt(df.cout_par_jour)} FCFA` : '—'} />
+        <Metric label="Conso / jour" value={df.conso_par_jour != null ? `${fmt(df.conso_par_jour, 1)} kWh` : '—'} />
+        <Metric label="Conso totale" value={df.consommation_totale != null ? `${fmt(df.consommation_totale)} kWh` : '—'} />
+        <Metric label="Période" value={df.nombre_jours != null ? `${df.nombre_jours} jours` : '—'} />
+        <Metric label="Tarif" value={df.tarif || '—'} />
+      </div>
+
+      {(df.periode_debut || df.periode_fin) && (
+        <p className="dw-caption">
+          Période : {df.periode_debut || '?'} → {df.periode_fin || '?'}
+        </p>
+      )}
+
+      {(df.montant_tva != null || df.montant_tco != null) && (
+        <div className="dw-section">
+          <h4>Détail des taxes</h4>
+          <div className="dw-metrics">
+            {df.montant_tva != null && <Metric label="TVA (18 %)" value={`${fmt(df.montant_tva)} FCFA`} />}
+            {df.montant_tco != null && <Metric label="TCO (2,5 %)" value={`${fmt(df.montant_tco)} FCFA`} />}
+            {df.montant_redevance != null && <Metric label="Redevance" value={`${fmt(df.montant_redevance)} FCFA`} />}
+          </div>
+        </div>
+      )}
+
+      {(df.consommation_tranche_1 != null || df.consommation_tranche_2 != null || df.consommation_tranche_3 != null) && (
+        <div className="dw-section">
+          <h4>Répartition par tranche</h4>
+          <div className="dw-metrics">
+            {df.consommation_tranche_1 != null && (
+              <Metric label="Tranche 1 (165 FCFA/kWh)" value={`${fmt(df.consommation_tranche_1)} kWh`} />
+            )}
+            {df.consommation_tranche_2 != null && (
+              <Metric label="Tranche 2 (191 FCFA/kWh)" value={`${fmt(df.consommation_tranche_2)} kWh`} />
+            )}
+            {df.consommation_tranche_3 != null && (
+              <Metric
+                label={`Tranche 3 (210,81 FCFA/kWh)${alerteT3 ? ' ⚠️' : ''}`}
+                value={`${fmt(df.consommation_tranche_3)} kWh`}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {df.numero_facture && (
+        <p className="dw-caption">Facture n° {df.numero_facture}</p>
+      )}
+    </div>
+  )
+}
+
+// ─── Main ResultatMetrique content (Senelec-aware) ──────────────────────────
+
 function ResultatMetriqueContent({ resultat }) {
   const confiancePct = resultat.confiance != null ? Math.round(Number(resultat.confiance) * 100) : null
   const limites = Array.isArray(resultat.limites) ? resultat.limites : []
   const sources = Array.isArray(resultat.sources) ? resultat.sources : []
+  const df = resultat.donnees_facture  // null when no invoice attached
+
+  const metriqueLabel = resultat.valeur_affichee != null
+    ? `${resultat.valeur_affichee} ${resultat.unite || ''}`.trim()
+    : resultat.valeur != null
+      ? `${resultat.valeur} ${resultat.unite || ''}`.trim()
+      : '—'
 
   return (
     <>
@@ -222,13 +311,19 @@ function ResultatMetriqueContent({ resultat }) {
       <p className="drawer-lead">
         {resultat.statut_qualite === 'FIABLE'
           ? 'Résultat calculé de façon déterministe à partir de vos relevés validés.'
-          : 'Ce résultat est encore en cours de qualification : la confiance à lui accorder est limitée.'}
+          : resultat.statut_qualite === 'ESTIME'
+            ? 'Résultat estimé — basé sur le seuil Senelec Tranche 3 (aucune facture précédente disponible).'
+            : 'Ce résultat est encore en cours de qualification : la confiance à lui accorder est limitée.'}
       </p>
+
       <div className="dw-metrics">
-        <Metric label="Valeur" value={resultat.valeur != null ? `${resultat.valeur} ${resultat.unite || ''}` : '—'} />
+        <Metric label="Valeur" value={metriqueLabel} />
         <Metric label="Confiance" value={confiancePct != null ? `${confiancePct} %` : 'Non évaluée'} />
         <Metric label="Complétude" value={resultat.completude != null ? `${Math.round(resultat.completude * 100)} %` : '—'} />
       </div>
+
+      {df && <SenelecDecoderPanel df={df} />}
+
       {limites.length > 0 && (
         <div className="dw-section">
           <h3>Limites de ce résultat</h3>

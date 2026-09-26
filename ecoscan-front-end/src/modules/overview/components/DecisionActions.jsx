@@ -1,7 +1,6 @@
 import React from 'react'
 import { ArrowUpRight, Check, ChevronRight, Zap } from 'lucide-react'
 import { GlassCard, TickProgress } from '@/components/instruments'
-import { SEED_DECISIONS } from '../constants'
 
 // Accepte à la fois les décisions de démonstration (title/scope/value)
 // et les objectifs renvoyés par l'API (nom/description/valeur_cible/unite).
@@ -17,9 +16,9 @@ function normalize(item) {
 }
 
 export function DecisionActions({
-  decisions = SEED_DECISIONS,
+  decisions = [],
   completed = [],
-  streakDays = 4,
+  streakDays = 0,
   onToggleCompleted,
   onOpenDrawer,
 }) {
@@ -77,9 +76,11 @@ export function DecisionActions({
           </strong>
           <small>{pct} % de la liste</small>
         </div>
-        <span className="chip chip-lime">
-          <Zap size={13} /> Série de {streakDays} jours
-        </span>
+        {streakDays > 0 && (
+          <span className="chip chip-lime">
+            <Zap size={13} /> Série de {streakDays} jour{streakDays > 1 ? 's' : ''}
+          </span>
+        )}
       </div>
     </GlassCard>
   )

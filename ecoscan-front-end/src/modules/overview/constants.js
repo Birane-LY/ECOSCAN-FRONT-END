@@ -40,5 +40,5 @@ export const DASHBOARD_WIDGETS = [
   { id: 'briefing', label: 'Briefing du jour' },
   { id: 'chart', label: 'Signal énergétique' },
   { id: 'actions', label: 'Actions prioritaires' },
-  { id: 'insight', label: 'Insight IA' },
+  { id: 'insight', label: 'Insight' },
 ]

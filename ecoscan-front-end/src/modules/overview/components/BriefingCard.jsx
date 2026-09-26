@@ -2,13 +2,14 @@ import React from 'react'
 import { BigNumber, DotBars, EcoMark, GlassCard } from '@/components/instruments'
 
 export function BriefingCard({
-  title = 'Vous êtes sur la bonne voie.',
-  description = 'Votre consommation a baissé de 14,2 % cette semaine. C’est votre meilleure performance depuis le début du trimestre.',
-  savedEnergy = '2 840',
+  title = 'Bienvenue sur EcoScan.',
+  description = 'Importez une facture ou saisissez un relevé pour recevoir votre premier briefing.',
+  savedEnergy = '0',
   savedEnergyUnit = 'kWh',
-  co2Saved = '1,2',
+  co2Saved = '0',
   co2Unit = 't',
-  badgeText = 'À jour',
+  badgeText = '',
+  trend = [],
   error,
 }) {
   return (
@@ -30,7 +31,7 @@ export function BriefingCard({
           <span className="metric-label">Équivalent CO₂</span>
           <BigNumber value={co2Saved} unit={co2Unit} />
         </div>
-        <DotBars values={[3, 4, 4, 6, 5, 4, 3]} label="Tendance de la semaine" />
+        {trend.length > 0 && <DotBars values={trend} label="Tendance récente" />}
       </div>
     </GlassCard>
   )
