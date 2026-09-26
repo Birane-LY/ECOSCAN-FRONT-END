@@ -6,25 +6,12 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusChip } from '@/components/ui/StatusChip'
 import { DataHealthBanner } from '@/modules/data-center/components/DataHealthBanner'
 import { FileSourceList } from '@/modules/data-center/components/FileSourceList'
-import { useCompteur } from '@/modules/business-tools/hooks/useCompteur'
-import { useDonneesEnergetiques } from '@/modules/business-tools/hooks/useDonneesEnergetiques'
-
-// `statut_validation` renvoyé par DonneeEnergetiqueViewSet — mappé vers les
-// mêmes libellés que StatusChip affiche ailleurs dans l'app.
-const STATUT_LABELS = {
-  EN_ATTENTE: 'En attente',
-  VALIDE: 'Validé',
-  REJETE: 'Rejeté',
-}
+import { useReleves } from '@/modules/data-center/hooks/useReleves'
 
 export function DataCenterView({ files, filesLoading, filesError, openUpload, setDrawer }) {
-  // Un relevé Woyofal (ou tout autre relevé manuel) est une DonneeEnergetique,
-  // pas un FichierSource — il ne peut donc jamais apparaître dans la liste
-  // "Fichiers importés" ci-dessous, qui interroge une ressource différente.
-  // Cette section interroge la bonne ressource pour que ces relevés soient
-  // réellement visibles ici, comme attendu.
-  const { compteur } = useCompteur()
-  const { donnees, loading: donneesLoading, error: donneesError } = useDonneesEnergetiques(compteur?.id)
+  // Les soldes et recharges Woyofal ne sont pas des FichierSource (liste ci-dessus)
+  // ni des index de compteur : ils sont lus directement à la source.
+  const { entrees, loading: relevesLoading, error: relevesError } = useReleves()
 
   return (
     <div className="dc">
@@ -65,26 +52,27 @@ export function DataCenterView({ files, filesLoading, filesError, openUpload, se
           </button>
         </div>
 
-        {donneesLoading && <p className="drawer-lead">Chargement…</p>}
-        {donneesError && <p className="drawer-lead">Erreur : {donneesError}</p>}
-        {!donneesLoading && !donneesError && donnees.length === 0 && (
-          <p className="dec-empty">Aucun relevé manuel pour le moment. Vos saisies Woyofal apparaîtront ici.</p>
+        {relevesLoading && <p className="drawer-lead">Chargement…</p>}
+        {relevesError && <p className="drawer-lead">Erreur : {relevesError}</p>}
+        {!relevesLoading && !relevesError && entrees.length === 0 && (
+          <p className="dec-empty">
+            Aucun relevé manuel pour le moment. Saisissez vos index par créneau, ou le solde de votre compteur Woyofal chaque jour : c’est ce qui
+            permet à EcoScan de mesurer votre consommation et de repérer une dérive.
+          </p>
         )}
-        {donnees.length > 0 && (
+        {entrees.length > 0 && (
           <div className="dc-list">
-            {donnees.map((d) => (
-              <div className="dc-row" key={d.id}>
+            {entrees.map((e) => (
+              <div className="dc-row" key={e.id}>
                 <span className="dc-file-icon">
                   <Gauge size={18} />
                 </span>
                 <span className="dc-file-name">
-                  <strong>{d.valeur} {d.unite}</strong>
-                  <small>{d.source || 'Relevé manuel'}</small>
+                  <strong>{e.titre}</strong>
+                  <small>{e.detail}</small>
                 </span>
-                <StatusChip status={STATUT_LABELS[d.statut_validation] || d.statut_validation} />
-                <span className="dc-file-time">
-                  {d.periode_fin ? new Date(d.periode_fin).toLocaleString('fr-FR') : '—'}
-                </span>
+                {e.statut && <StatusChip status={e.statut} />}
+                <span className="dc-file-time">{e.date ? new Date(e.date).toLocaleString('fr-FR') : '—'}</span>
               </div>
             ))}
           </div>

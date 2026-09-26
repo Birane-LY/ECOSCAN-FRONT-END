@@ -13,6 +13,8 @@ const STATUS_LABELS = {
   ANNULE: 'Annulé',
 }
 
+const unwrap = (r) => (Array.isArray(r) ? r : r?.results ?? [])
+
 function toFileShape(importItem) {
   return {
     id: importItem.id,
@@ -30,7 +32,7 @@ export function useFileSources() {
   const reload = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
-      const imports = await apiGet('/energies/imports/')   // ← singulier "/energy/" est le bug
+      const imports = unwrap(await apiGet('/energies/imports/')) 
       setState({ loading: false, error: null, files: imports.map(toFileShape) })
     } catch (err) {
       setState({ loading: false, error: err.message, files: [] })

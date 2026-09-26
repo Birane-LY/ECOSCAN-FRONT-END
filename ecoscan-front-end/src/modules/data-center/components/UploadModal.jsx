@@ -31,7 +31,7 @@ export function UploadModal({ stage, fileRef, onProcess, onFinish, onClose, resu
               <CloudUpload size={26} />
             </span>
             <h2 id="upload-title">Importer une source de données</h2>
-            <p>Déposez un fichier de consommation pour lancer une nouvelle analyse.</p>
+            <p>Déposez une facture Senelec ou un fichier de consommation pour lancer une nouvelle analyse.</p>
             <button
               type="button"
               className={`mdl-drop ${dragging ? 'over' : ''}`}
@@ -45,9 +45,9 @@ export function UploadModal({ stage, fileRef, onProcess, onFinish, onClose, resu
             >
               <Upload size={22} />
               <strong>Déposez votre fichier ici</strong>
-              <span>CSV, XLSX ou JSON, 25 Mo maximum</span>
+              <span>PDF, image (JPG, PNG), TXT ou CSV, 25 Mo maximum</span>
             </button>
-            <input ref={fileRef} type="file" hidden accept=".csv,.xlsx,.json" onChange={onProcess} />
+            <input ref={fileRef} type="file" hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv" onChange={onProcess} />
             <button type="button" className="secondary-button" onClick={() => fileRef.current?.click()}>
               <FileSpreadsheet size={16} />
               Choisir un fichier
@@ -108,3 +108,4 @@ export function UploadModal({ stage, fileRef, onProcess, onFinish, onClose, resu
     </div>
   )
 }
+

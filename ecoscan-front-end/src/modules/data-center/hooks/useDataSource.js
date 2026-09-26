@@ -1,5 +1,6 @@
 'use client'
 
+
 import { useState, useRef, useCallback } from 'react'
 import { apiGet, apiPost } from '@/lib/apiClient'
 
@@ -13,77 +14,73 @@ function authHeaders() {
 async function apiPostFormData(path, formData) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
-    // Pas de Content-Type fixé ici : le navigateur doit poser lui-même le
-    // boundary multipart/form-data — le fixer manuellement casse l'upload.
+    // Pas de Content-Type : le navigateur pose lui-même le boundary multipart.
     headers: { ...authHeaders() },
     body: formData,
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || JSON.stringify(err) || `Erreur ${res.status}`)
+    throw new Error(err.detail || err.fichier?.[0] || JSON.stringify(err) || `Erreur ${res.status}`)
   }
   return res.json()
 }
 
+const unwrap = (r) => (Array.isArray(r) ? r : r?.results ?? [])
+
 export function useDataSources() {
   const [uploadOpen, setUploadOpen] = useState(false)
-  const [uploadStage, setUploadStage] = useState(0) // 0 idle · 1-2 en cours · 3 terminé
+  const [uploadStage, setUploadStage] = useState(0) // 0 repos · 1-2 en cours · 3 terminé
   const [result, setResult] = useState(null)
   const fileRef = useRef(null)
 
   const openUpload = () => { setUploadOpen(true); setUploadStage(0); setResult(null) }
   const closeUpload = () => { setUploadOpen(false); setUploadStage(0); setResult(null) }
 
-  // Création manuelle d'une source de données via l'API
   const handleCreateSource = useCallback(async (formData = {}) => {
-    try {
-      const response = await apiPost('/energies/sources-donnees/', {
-        nom: formData.nom || "Compteur Principal",
-        type_source: formData.type_source || "COMPTEUR", // "COMPTEUR", "MANUEL", "WOYOFAL", etc.
-        description: formData.description || "",
-      })
-
-      console.log("Source de données créée :", response)
-      return response
-    } catch (error) {
-      console.error("Erreur lors de la création de la source :", error)
-      throw error
-    }
+    // Le serializer SourceDonnee exige ces 5 champs (les anciens « type_source » et
+    // « description » n'existent pas) : sans eux, la création répondait 400.
+    return apiPost('/energies/sources-donnees/', {
+      nom: formData.nom || 'Compteur Principal',
+      type: formData.type || 'COMPTEUR', // "COMPTEUR", "MANUEL", "WOYOFAL"...
+      origine: formData.origine || 'Saisie manuelle',
+      frequence: formData.frequence || 'Ponctuelle',
+      statut_synchronisation: formData.statut_synchronisation || 'Non synchronisé',
+    })
   }, [])
 
   const processUpload = useCallback(async (fileOrEvent) => {
-    const file = fileOrEvent?.target?.files ? fileOrEvent.target.files[0] : fileOrEvent
+    const input = fileOrEvent?.target?.files ? fileOrEvent.target : null
+    const file = input ? input.files[0] : fileOrEvent
     if (!file) return
 
     setUploadStage(1)
     try {
-      // Gate 1 — dépôt physique du fichier
+      // Étape 1 — dépôt physique du fichier
       const formData = new FormData()
       formData.append('fichier', file)
       const fichierSource = await apiPostFormData('/energies/fichiers-sources/', formData)
 
       setUploadStage(2)
 
-      // Récupération éventuelle du premier compteur disponible
+      // Compteur par défaut, optionnel : son absence ne doit jamais bloquer l'import
       let compteurId = null
       try {
-        const compteurs = await apiGet('/organisations/compteurs/')
-        compteurId = compteurs[0]?.id ?? null
-      } catch {
-        // L'absence de compteur configuré ne doit jamais bloquer l'import — reste optionnel
-      }
+        compteurId = unwrap(await apiGet('/organisations/compteurs/'))[0]?.id ?? null
+      } catch {}
 
-      // Création de l'enregistrement d'import rattaché au fichier déposé
+      // Étape 2 — création de l'import rattaché au fichier
       const importCree = await apiPost('/energies/imports/', {
         fichier_source: fichierSource.id,
         ...(compteurId ? { compteur: compteurId } : {}),
       })
 
-      // Gate 2 — pipeline OCR → classification → extraction → validation
+      // Étape 3 — pipeline OCR -> classification -> extraction -> validation.
+      // Côté serveur, « lancer » publie déjà le résultat métrique (et lance
+      // l'analyse d'anomalie) quand le statut est TERMINE.
       const importTraite = await apiPost(`/energies/imports/${importCree.id}/lancer/`)
 
-      if (importTraite.statut === 'TERMINE') {
-        await apiPost('/analyses/integration/energy/', { import_id: importTraite.id })
+      if (importTraite.statut === 'TERMINE' || importTraite.statut === 'REVUE_REQUISE') {
+        try { await apiPost('/analyses/integration/energy/', { import_id: importTraite.id }) } catch {}
       }
 
       setResult(importTraite)
@@ -91,23 +88,27 @@ export function useDataSources() {
     } catch (err) {
       setResult({ statut: 'ECHOUE', ocr_erreur: err.message })
       setUploadStage(3)
+    } finally {
+      if (input) input.value = '' // permet de re-sélectionner le même fichier
     }
   }, [])
 
-  const finishUpload = useCallback((callback) => {
+  const finishUpload = useCallback(async (callback) => {
+    if (result && result.id) {
+      try {
+        await apiPost(`/energies/imports/${result.id}/valider-et-publier/`).catch(() =>
+          apiPost('/analyses/integration/energy/', { import_id: result.id })
+        )
+      } catch (e) {
+        console.warn('Publication de l analyse :', e)
+      }
+    }
     closeUpload()
     if (callback) callback()
-  }, [])
+  }, [result, closeUpload])
 
   return {
-    uploadOpen, 
-    uploadStage, 
-    result, 
-    fileRef,
-    openUpload, 
-    closeUpload, 
-    processUpload, 
-    finishUpload,
-    handleCreateSource, 
+    uploadOpen, uploadStage, result, fileRef,
+    openUpload, closeUpload, processUpload, finishUpload, handleCreateSource,
   }
 }
