@@ -49,18 +49,35 @@ export function BillingView({ plans, setPlans, openModal, notify }) {
       <div className="adm-plans">
         {plans.map((p) => (
           <GlassCard as="article" className="adm-plan" key={p.id}>
-            <span className={`chip ${statusTone(p.status)}`}>{p.status}</span>
-            <h2>{p.name}</h2>
-            <strong className="adm-plan-price">{p.price === '0' || p.price === 0 ? 'Gratuit' : `${p.price} FCFA / mois`}</strong>
+            <span className={`chip ${statusTone(p.actif ? 'Actif' : 'Inactif')}`}>
+              {p.actif ? 'Actif' : 'Inactif'}
+            </span>
+            <h2>{p.nom}</h2>
+            <strong className="adm-plan-price">
+              {Number(p.prix_mensuel) === 0
+                ? 'Gratuit'
+                : `${new Intl.NumberFormat('fr-FR').format(Number(p.prix_mensuel))} ${p.devise || 'XOF'} / mois`}
+            </strong>
+            {p.description && <p>{p.description}</p>}
             <p>
-              {p.active || 0} organisations actives, {p.seats || 'Illimité'} sièges
+              {p.limites?.utilisateurs == null ? 'Utilisateurs illimités' : `${p.limites.utilisateurs} utilisateurs maximum`}
             </p>
+            {p.prix_annuel != null && (
+              <p>{new Intl.NumberFormat('fr-FR').format(Number(p.prix_annuel))} {p.devise || 'XOF'} / an</p>
+            )}
+            {Array.isArray(p.fonctionnalites?.avantages) && p.fonctionnalites.avantages.length > 0 && (
+              <ul>
+                {p.fonctionnalites.avantages.map((advantage, index) => (
+                  <li key={`${p.id}-advantage-${index}`}>{advantage}</li>
+                ))}
+              </ul>
+            )}
             <div className="adm-actions">
               <button type="button" className="secondary-button" onClick={() => openModal('plan', p)}>
                 <Pencil size={14} />
                 Modifier
               </button>
-              <button type="button" className="icon-button" onClick={() => deletePlan(p.id)} aria-label={`Supprimer le plan ${p.name}`}>
+              <button type="button" className="icon-button" onClick={() => deletePlan(p.id)} aria-label={`Supprimer le plan ${p.nom}`}>
                 <Trash2 size={15} />
               </button>
             </div>

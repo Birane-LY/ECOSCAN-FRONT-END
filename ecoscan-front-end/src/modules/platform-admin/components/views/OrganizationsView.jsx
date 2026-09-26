@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, Download, Pencil, Plus, Search } from "lucide-react";
+import { Check, Download, Search } from "lucide-react";
 import { GlassCard } from "@/components/instruments";
 import { AdminHeading } from "./AdminHeading";
 import { statusTone } from "./adminUi";
@@ -29,10 +29,12 @@ function mapDjangoOrg(o) {
     // (une organisation peut avoir plusieurs admins) : il renvoie emails_admin,
     // la liste des emails des ADMIN_ORGANISATION de la structure.
     email: (o.emails_admin && o.emails_admin[0]) || o.email || "",
-    plan: o.type_compte || o.plan || "Pro",
+    plan: o.details_demande?.plan_nom || o.plan || "Non renseignée",
     users_count: o.nombre_membres ?? o.membres_count ?? o.users_count ?? o.users ?? 1,
     status: formattedStatus,
     rawStatut: o.statut,
+    localisation: o.localisation || "",
+    detailsDemande: o.details_demande || null,
     rawOrg: o,
   };
 }
@@ -42,7 +44,6 @@ export function OrganizationsView({
   setOrgs,
   selectOrg,
   selectedOrg,
-  openModal,
   notify,
 }) {
   const [q, setQ] = useState("");
@@ -65,28 +66,15 @@ export function OrganizationsView({
 
   // Inversion du statut (Actif / Suspendu) avec l'URL Django `/organisations/structures/`
   const toggleStatus = async (org) => {
-    // Statuts Django attendus par la méthode update() de Django: "ACTIVE" ou "SUSPENDUE"
-    const isCurrentlyActive = org.status === "Actif";
-    const nextDjangoStatus = isCurrentlyActive ? "SUSPENDUE" : "ACTIVE";
-
-    try {
-      // Endpoint : /organisations/structures/ (l'app organizations est montée sous /api/organisations/, voir API_PREFIX dans apiClient.js)
-      const res = await apiClient.patch(`/organisations/structures/${org.id}/`, {
-        statut: nextDjangoStatus,
-      });
-
-      const updatedOrg = mapDjangoOrg(res.data);
-      setOrgs(orgs.map((x) => (x.id === org.id ? { ...x, ...res.data } : x)));
-      notify(`Statut mis à jour : ${updatedOrg.status}`);
-    } catch (err) {
-      notify(
-        "Erreur lors du changement de statut (droits insuffisants ou défaut de paiement)",
-      );
-    }
+    return updateOrgStatus(
+      org.id,
+      org.status === "Actif" ? "Suspendu" : "Actif",
+      org.rawStatut === "EN_ATTENTE",
+    );
   };
 
   // Action explicite d'approbation ou suspension depuis la carte détaillée
-  const updateOrgStatus = async (orgId, targetStatus) => {
+  const updateOrgStatus = async (orgId, targetStatus, isApproval = false) => {
     const djangoStatus = targetStatus === "Actif" ? "ACTIVE" : "SUSPENDUE";
     try {
       const res = await apiClient.patch(`/organisations/structures/${orgId}/`, {
@@ -94,11 +82,15 @@ export function OrganizationsView({
       });
       setOrgs(orgs.map((o) => (o.id === orgId ? { ...o, ...res.data } : o)));
       selectOrg(null);
-      notify(
-        `Organisation ${targetStatus === "Actif" ? "approuvée" : "suspendue"}`,
-      );
-    } catch {
-      notify("Erreur lors de la mise à jour de l’organisation");
+      if (isApproval && res.data.activation_email_sent) {
+        notify("Demande approuvée : l’e-mail d’activation a été envoyé par Brevo.");
+      } else if (isApproval) {
+        notify("Demande approuvée. Aucun compte administrateur en attente d’activation n’est lié.");
+      } else {
+        notify(`Organisation ${targetStatus === "Actif" ? "réactivée" : "suspendue"}`);
+      }
+    } catch (err) {
+      notify(err.message || "Erreur lors de la mise à jour de l’organisation");
     }
   };
 
@@ -109,12 +101,6 @@ export function OrganizationsView({
       <AdminHeading
         title="Organisations"
         subtitle="Validez, accompagnez et administrez les espaces clients."
-        action={
-          <button className="primary-button" onClick={() => openModal("org")}>
-            <Plus size={16} />
-            Créer
-          </button>
-        }
       />
 
       <div className="adm-toolbar">
@@ -178,18 +164,12 @@ export function OrganizationsView({
               <span className="adm-row-actions">
                 <button
                   type="button"
-                  className="icon-button"
-                  onClick={() => openModal("org", o.rawOrg || o)}
-                  aria-label={`Modifier ${o.name}`}
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  type="button"
                   className="secondary-button"
                   onClick={() => toggleStatus(o)}
+                  disabled={o.status === "À valider" && !o.email}
+                  title={o.status === "À valider" ? "Approuver et envoyer le lien d’activation" : undefined}
                 >
-                  {o.status === "Actif" ? "Suspendre" : "Activer"}
+                  {o.status === "Actif" ? "Suspendre" : o.status === "À valider" ? "Approuver" : "Activer"}
                 </button>
               </span>
             </div>
@@ -209,24 +189,52 @@ export function OrganizationsView({
             <h3>{selectedMapped.name}</h3>
             <span className="hc-sub">
               Secteur : {selectedMapped.sector} | Plan : {selectedMapped.plan}
+              {selectedMapped.localisation && ` | Localisation : ${selectedMapped.localisation}`}
             </span>
+            {selectedMapped.detailsDemande && (
+              <div className="mt-3 space-y-1 text-xs text-white/75">
+                {selectedMapped.detailsDemande.profil && (
+                  <p>Profil demandé : {selectedMapped.detailsDemande.profil}</p>
+                )}
+                {selectedMapped.detailsDemande.plan_nom && (
+                  <p>Formule souhaitée : {selectedMapped.detailsDemande.plan_nom}</p>
+                )}
+                {selectedMapped.detailsDemande.nombre_sites && (
+                  <p>Sites estimés : {selectedMapped.detailsDemande.nombre_sites}</p>
+                )}
+                {Array.isArray(selectedMapped.detailsDemande.objectifs) &&
+                  selectedMapped.detailsDemande.objectifs.length > 0 && (
+                    <p>Priorités : {selectedMapped.detailsDemande.objectifs.join(", ")}</p>
+                  )}
+                {Array.isArray(selectedMapped.detailsDemande.sources) &&
+                  selectedMapped.detailsDemande.sources.length > 0 && (
+                    <p>Données disponibles : {selectedMapped.detailsDemande.sources.join(", ")}</p>
+                  )}
+              </div>
+            )}
           </div>
           <div className="adm-actions">
             <button
               type="button"
               className="primary-button"
-              onClick={() => updateOrgStatus(selectedMapped.id, "Actif")}
+              onClick={() => updateOrgStatus(
+                selectedMapped.id,
+                "Actif",
+                selectedMapped.rawStatut === "EN_ATTENTE",
+              )}
             >
               <Check size={16} />
-              Approuver
+              {selectedMapped.rawStatut === "EN_ATTENTE" ? "Approuver et envoyer l’invitation" : "Approuver"}
             </button>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => updateOrgStatus(selectedMapped.id, "Suspendu")}
-            >
-              Suspendre
-            </button>
+            {selectedMapped.rawStatut !== "EN_ATTENTE" && (
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => updateOrgStatus(selectedMapped.id, "Suspendu")}
+              >
+                Suspendre
+              </button>
+            )}
           </div>
         </GlassCard>
       )}

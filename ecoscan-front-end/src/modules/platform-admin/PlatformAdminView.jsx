@@ -8,10 +8,10 @@ import { ADMIN_NAV_ITEMS } from './constants'
 import { AdminSidebar } from './components/layout/AdminSidebar'
 import { AdminTopbar } from './components/layout/AdminTopbar'
 import { AdminChatDrawer } from './components/layout/AdminChatDrawer'
-import { OrgModal } from './components/modals/OrgModal'
 import { PlanModal } from './components/modals/PlanModal'
 import { InvoiceModal } from './components/modals/InvoiceModal'
 import { ReminderModal } from './components/modals/ReminderModal'
+import { SuperAdminInviteModal } from './components/modals/SuperAdminInviteModal'
 import { BillingView } from './components/views/BillingView'
 import { InvoicesView } from './components/views/InvoicesView'
 import { RemindersView } from './components/views/RemindersView'
@@ -22,10 +22,10 @@ import { PlatformTableView } from './components/views/PlatformTableView'
 import {apiClient} from '@/lib/apiClient'
 
 const MODAL_TITLES = {
-  org: (editing) => (editing ? 'Modifier l’organisation' : 'Créer une organisation'),
   plan: (editing) => (editing ? 'Modifier le plan' : 'Créer un plan'),
   invoice: (editing) => (editing ? 'Détail de facture' : 'Nouvelle facture'),
   reminder: () => 'Programmer une relance',
+  'super-admin-invite': () => 'Inviter un membre de l’équipe EcoScan',
 }
 
 export function PlatformAdminView() {
@@ -143,6 +143,25 @@ const fetchAdminData = useCallback(async () => {
     setEditing(null)
   }
 
+  const inviteSuperAdmin = async ({ nom, email }) => {
+    try {
+      const res = await apiClient.post('/membres/', {
+        nom,
+        email,
+        role: 'SUPER_ADMIN',
+      })
+      setUsersList((current) => [...current, { ...res.data, actif: false }])
+      closeModal()
+      notify(
+        res.data.activation_email_sent
+          ? 'Invitation envoyée par e-mail.'
+          : 'Membre créé, mais e-mail non envoyé. Vérifiez la configuration Brevo.',
+      )
+    } catch (err) {
+      notify(err.response?.data?.detail || err.message || 'Impossible de créer cette invitation.')
+    }
+  }
+
   return (
     <AppShell darkMode={dark}>
       <div className="adm">
@@ -171,15 +190,22 @@ const fetchAdminData = useCallback(async () => {
               <div className="p-6 text-center">Chargement des données de la plateforme...</div>
             ) : (
               <>
-                {view === 'dashboard' && <AdminDashboardView select={select} notify={notify} />}
-                {view === 'analytics' && <AdminDashboardView select={select} notify={notify} analytics />}
+                {view === 'dashboard' && (
+                  <AdminDashboardView
+                    select={select}
+                    notify={notify}
+                    orgs={orgs}
+                    usersList={usersList}
+                    invoices={invoices}
+                    plans={plans}
+                  />
+                )}
                 {view === 'organizations' && (
                   <OrganizationsView
                     orgs={orgs}
                     setOrgs={setOrgs}
                     selectOrg={setSelectedOrg}
                     selectedOrg={selectedOrg}
-                    openModal={openModal}
                     notify={notify}
                   />
                 )}
@@ -189,10 +215,12 @@ const fetchAdminData = useCallback(async () => {
                 {view === 'users' && (
                   <PlatformTableView
                     title="Utilisateurs"
-                    subtitle="Gérez les accès et les rôles des espaces clients."
-                    columns={['Utilisateur', 'Organisation', 'Rôle', 'Dernière activité']}
-                    rows={usersList.map((u) => `${u.nom || u.full_name || u.email} · ${u.org_name || '-'} · ${u.role || '-'} · ${u.last_active || '-'}`)}
+                    subtitle="Gérez les accès de l’équipe EcoScan."
+                    columns={['Utilisateur', 'E-mail', 'Rôle', 'État']}
+                    rows={usersList.map((u) => `${u.nom || u.full_name || u.email} · ${u.email || '-'} · ${u.role || '-'} · ${u.actif ? 'Actif' : 'Invitation en attente'}`)}
                     notify={notify}
+                    actionLabel="Inviter un Super Admin"
+                    onAction={() => openModal('super-admin-invite')}
                   />
                 )}
                 {view === 'system' && <SystemHealthView notify={notify} />}
@@ -217,25 +245,8 @@ const fetchAdminData = useCallback(async () => {
                 </button>
               </div>
 
-              {modal === 'org' && (
-                <OrgModal
-                  initial={editing}
-                  onSubmit={async (d) => {
-                    try {
-                      if (editing) {
-                        const res = await apiClient.patch(`/organisations/structures/${editing.id}/`, d)
-                        setOrgs(orgs.map((o) => (o.id === editing.id ? res.data : o)))
-                      } else {
-                        const res = await apiClient.post('/organisations/structures/', d)
-                        setOrgs([...orgs, res.data])
-                      }
-                      notify('Organisation enregistrée')
-                      closeModal()
-                    } catch {
-                      notify('Erreur lors de l’enregistrement')
-                    }
-                  }}
-                />
+              {modal === 'super-admin-invite' && (
+                <SuperAdminInviteModal onSubmit={inviteSuperAdmin} onClose={closeModal} />
               )}
 
               {modal === 'plan' && (

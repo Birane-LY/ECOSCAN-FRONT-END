@@ -5,7 +5,6 @@ import { Building2, CreditCard, Gauge, LifeBuoy, Server, TrendingUp, UserCog, Us
 // sont ajoutées séparément sous "Revenus" dans la sidebar.
 export const ADMIN_NAV_ITEMS = [
   ['dashboard', 'Tableau de bord', Gauge],
-  ['analytics', 'Analytics', TrendingUp],
   ['organizations', 'Organisations', Building2],
   ['billing', 'Facturation', CreditCard],
   ['users', 'Utilisateurs', Users],

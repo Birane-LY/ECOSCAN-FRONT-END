@@ -5,18 +5,18 @@ import { Plus } from 'lucide-react'
 import { GlassCard } from '@/components/instruments'
 import { AdminHeading } from './AdminHeading'
 
-export function PlatformTableView({ title, subtitle, columns, rows, notify }) {
+export function PlatformTableView({ title, subtitle, columns, rows, notify, actionLabel, onAction }) {
   return (
     <>
       <AdminHeading
         title={title}
         subtitle={subtitle}
-        action={
-          <button className="primary-button" onClick={() => notify('Formulaire de création ouvert')}>
+        action={onAction ? (
+          <button className="primary-button" type="button" onClick={onAction}>
             <Plus size={16} />
-            Nouveau
+            {actionLabel || 'Nouveau'}
           </button>
-        }
+        ) : null}
       />
 
       <GlassCard as="article" className="adm-panel">
@@ -26,9 +26,9 @@ export function PlatformTableView({ title, subtitle, columns, rows, notify }) {
               <span key={c}>{c}</span>
             ))}
           </div>
-          {rows.map((row) => (
-            <button type="button" className="adm-row adm-row-btn" key={row} onClick={() => notify('Détail ouvert')}>
-              {row.split(' · ').map((p, i) => (i === 0 ? <strong key={p}>{p}</strong> : <span key={p}>{p}</span>))}
+                   {rows.map((row, rowIndex) => (
+            <button type="button" className="adm-row adm-row-btn" key={`${row}-${rowIndex}`} onClick={() => notify('Détail ouvert')}>
+              {row.split(' · ').map((p, i) => (i === 0 ? <strong key={i}>{p}</strong> : <span key={i}>{p}</span>))}
             </button>
           ))}
         </div>
