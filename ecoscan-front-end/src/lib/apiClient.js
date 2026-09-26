@@ -35,11 +35,18 @@ export async function apiGet(path) {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
 
-    throw new Error(
+    const error = new Error(
       body.detail ||
-      body.error ||
-      `Erreur ${res.status} sur ${url}`
+        body.error ||
+        `Erreur ${res.status} sur ${url}`
     )
+
+    error.response = {
+      status: res.status,
+      data: body,
+    }
+
+    throw error
   }
 
   const data = await res.json()
@@ -80,22 +87,158 @@ export async function apiPost(path, body = {}, options = {}) {
         message = errorData.error
       } else {
         message = Object.entries(errorData)
-          .map(
-            ([champ, msgs]) =>
-              `${champ}: ${
-                Array.isArray(msgs)
-                  ? msgs.join(', ')
-                  : msgs
-              }`
-          )
+          .map(([champ, msgs]) => {
+            const valeurs = Array.isArray(msgs)
+              ? msgs.join(', ')
+              : msgs
+
+            return `${champ}: ${valeurs}`
+          })
           .join(' | ')
       }
     }
 
-    throw new Error(
+    const error = new Error(
       message || `Erreur ${response.status} sur ${url}`
     )
+
+    error.response = {
+      status: response.status,
+      data: errorData,
+    }
+
+    throw error
   }
 
   return response.json()
 }
+
+/**
+ * Active un compte invité.
+ *
+ * Endpoint Django :
+ * POST /api/activation/
+ *
+ * Cette route est publique et ne nécessite pas de JWT.
+ */
+export async function activateAccount({
+  uid,
+  token,
+  motDePasse,
+  confirmationMotDePasse,
+}) {
+  return apiPost('/activation/', {
+    uid,
+    token,
+    mot_de_passe: motDePasse,
+    mot_de_passe_confirmation: confirmationMotDePasse,
+  })
+}
+
+export async function apiPatch(path, body = {}) {
+  const url = buildUrl(path)
+
+  console.log('[API PATCH]', url)
+
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(),
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+
+    const error = new Error(
+      errorData.detail ||
+        errorData.error ||
+        `Erreur ${response.status} sur ${url}`
+    )
+
+    error.response = {
+      status: response.status,
+      data: errorData,
+    }
+
+    throw error
+  }
+
+  return response.json()
+}
+
+export async function apiDelete(path, options = {}) {
+  const url = buildUrl(path)
+
+  console.log('[API DELETE]', url)
+
+  const response = await fetch(url, {
+    ...options,
+    method: 'DELETE',
+    headers: {
+      ...authHeaders(),
+      ...(options.headers || {}),
+    },
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+
+    const error = new Error(
+      errorData.detail ||
+        errorData.error ||
+        `Erreur ${response.status} sur ${url}`
+    )
+
+    error.response = {
+      status: response.status,
+      data: errorData,
+    }
+
+    throw error
+  }
+
+  if (response.status === 204) {
+    return null
+  }
+
+  return response.json().catch(() => null)
+}
+
+export const apiClient = {
+  async get(path) {
+    const data = await apiGet(path)
+
+    return {
+      data,
+    }
+  },
+
+  async post(path, body, options) {
+    const data = await apiPost(path, body, options)
+
+    return {
+      data,
+    }
+  },
+
+  async patch(path, body) {
+    const data = await apiPatch(path, body)
+
+    return {
+      data,
+    }
+  },
+
+  async delete(path, options) {
+    const data = await apiDelete(path, options)
+
+    return {
+      data,
+    }
+  },
+}
+
+export default apiClient

@@ -1,6 +1,3 @@
-/**
- * Application-wide configuration and public metadata.
- */
 export const APP_CONFIG = {
   name: 'EcoScan',
   tagline: 'Pilotage énergétique',
@@ -8,5 +5,5 @@ export const APP_CONFIG = {
   organization: 'Nova Industries',
   currency: 'FCFA',
   supportEmail: 'contact@ecoscan.sn',
-  logoUrl: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-hjEm36K6A9tgfdfZMaBpStIePLCte7.png',
+  logoUrl: '/logo.png', 
 }
