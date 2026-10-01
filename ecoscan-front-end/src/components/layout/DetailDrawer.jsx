@@ -16,7 +16,7 @@ const NOTICES = {
     body: 'Importez une source de données pour lancer une nouvelle analyse.',
   },
   'roi-export': { title: 'Simulation enregistrée', body: 'Votre simulation de retour sur investissement a été ajoutée à la synthèse financière.' },
-  'report-generated': { title: 'Rapport en préparation', body: 'Le rapport apparaît dans « Dernier rapport » dès qu’il est prêt.' },
+  'report-generated': { title: 'Document en préparation', body: 'Le rapport ou la mémoire PDF apparaît dans « Dernier document généré » dès qu’il est prêt.' },
   'report-preview': { title: 'Aperçu indisponible', body: 'La prévisualisation n’est pas encore disponible. Générez le rapport pour le consulter.' },
   'daily-summary': { title: 'Bilan de la journée', body: 'Votre bilan a bien été pris en compte.' },
   'daily-history': { title: 'Historique des relevés', body: 'L’historique complet arrive bientôt.' },

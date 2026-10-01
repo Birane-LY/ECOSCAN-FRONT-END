@@ -75,7 +75,7 @@ export default function Header({ revealAfter }) {
                 Se connecter
               </Link>
               <Link
-                href="/onboarding"
+                href="/abonnement"
                 className="inline-flex items-center gap-1.5 rounded-full bg-orange-cta px-4 py-2 text-[13px] font-semibold text-white transition-all hover:bg-orange-deep hover:shadow-royal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-cta"
               >
                 Commencer
@@ -143,7 +143,7 @@ export default function Header({ revealAfter }) {
                       Se connecter a mon espace
                     </Link>
                     <Link
-                      href="/onboarding"
+                      href="/abonnement"
                       onClick={() => setMenuOpen(false)}
                       className="rounded-lg bg-orange-cta px-4 py-3 text-center text-sm font-semibold text-white"
                     >

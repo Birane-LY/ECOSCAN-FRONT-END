@@ -14,7 +14,7 @@ export function OverviewContainer({ user, setDrawer }) {
 
   const {
     loading, chartSeries, reload,
-    heroData, briefingData, insightData, decisionsData, assistantData,
+    heroData, briefingData, insightData, decisionsData, progressionObjectifs, assistantData,
   } = useOverviewData(period)
   const upload = useDataSources()
 
@@ -41,6 +41,7 @@ export function OverviewContainer({ user, setDrawer }) {
         briefingData={briefingData}
         insightData={insightData}
         decisionsData={decisionsData}
+        progressionObjectifs={progressionObjectifs}
         assistantData={assistantData}
         chartSeries={chartSeries}
         period={period}

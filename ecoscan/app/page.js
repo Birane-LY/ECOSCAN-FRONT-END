@@ -1,3 +1,4 @@
+
 import { redirect } from "next/navigation"
 import Header from "@/app/components/navigation/Header"
 import HeroVideoTeaser from "@/app/components/hero/HeroVideoTeaser"

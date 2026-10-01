@@ -1,77 +1,280 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import { ArrowUpRight, Clock, ExternalLink, Landmark, Search } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { ArrowUpRight, Clock, ExternalLink, Landmark, RefreshCw, Search } from 'lucide-react'
+import { apiGet } from '@/lib/apiClient'
 import { GlassCard } from '@/components/instruments'
 import { StatusChip } from '@/components/ui/StatusChip'
+import { useFundingReview } from '@/modules/business-tools/hooks/useFundingReview'
 
-const GRANTS = [
-  { name: 'Fonds DER', amount: '5 000 000 FCFA', rate: '80 %', deadline: '30 sept. 2026', eligible: true, criteria: 'PME de moins de 5 ans, secteur énergie' },
-  { name: 'ANSUT Innovation', amount: '10 000 000 FCFA', rate: '50 %', deadline: '15 oct. 2026', eligible: false, criteria: 'Projet innovant avec impact environnemental' },
-  { name: 'Programme Sénégal PME', amount: '2 500 000 FCFA', rate: '60 %', deadline: '04 nov. 2026', eligible: true, criteria: 'PME formalisée, plan de réduction carbone' },
-]
+const ADMIN_ROLES = ['ADMIN_ORGANISATION', 'SUPER_ADMIN']
 
-export function FundingTool({ setDrawer }) {
+function normalize(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('fr-FR')
+}
+
+function formatAmount(amount, currency) {
+  if (amount == null || amount === '') return 'Non précisé'
+  const value = Number(amount)
+  if (!Number.isFinite(value)) return 'Non précisé'
+  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value)} ${currency || 'FCFA'}`
+}
+
+function formatDeadline(value) {
+  if (!value) return null
+  const date = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(date)
+}
+
+function getSafeSourceUrl(value) {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : null
+  } catch {
+    return null
+  }
+}
+
+function FundingReviewQueue({ onPublished }) {
+  const { loading, error, aVerifier, valider, rejeter, reload } = useFundingReview()
+  const [deciding, setDeciding] = useState(null)
+  const [actionError, setActionError] = useState(null)
+
+  const decide = async (opportunity, action) => {
+    setDeciding({ id: opportunity.id, action })
+    setActionError(null)
+    try {
+      if (action === 'valider') {
+        await valider(opportunity.id)
+        onPublished()
+      } else {
+        await rejeter(opportunity.id)
+      }
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setDeciding(null)
+    }
+  }
+
+  return (
+    <section className="fd-review" aria-labelledby="fd-review-title">
+      <div className="fd-review-head">
+        <div>
+          <h2 id="fd-review-title">À vérifier avant publication</h2>
+          <p>Les opportunités collectées sont relues ici avant d’être visibles dans le catalogue.</p>
+        </div>
+        <button type="button" className="icon-button" onClick={reload} disabled={loading} aria-label="Actualiser les opportunités à vérifier">
+          <RefreshCw size={16} />
+        </button>
+      </div>
+
+      {loading && <p className="fd-status" role="status">Chargement des opportunités à vérifier…</p>}
+      {error && (
+        <div className="fd-error" role="alert">
+          <span>Impossible de charger les opportunités à vérifier : {error}</span>
+          <button type="button" className="secondary-button" onClick={reload}>Réessayer</button>
+        </div>
+      )}
+      {actionError && <p className="fd-status err" role="alert">{actionError}</p>}
+      {!loading && !error && aVerifier.length === 0 && (
+        <p className="fd-status">Aucune nouvelle opportunité n’attend de vérification.</p>
+      )}
+
+      {aVerifier.length > 0 && (
+        <div className="fd-review-list">
+          {aVerifier.map((opportunity) => (
+            <article className="fd-review-item" key={opportunity.id}>
+              <div className="fd-review-copy">
+                <div className="fd-review-title">
+                  <strong>{opportunity.titre}</strong>
+                  <StatusChip status="À vérifier" />
+                </div>
+                <span className="fd-org">{opportunity.organisme}</span>
+                <p>{opportunity.description || opportunity.criteres_eligibilite || 'Aucun détail fourni.'}</p>
+                {getSafeSourceUrl(opportunity.url_source) && (
+                  <a href={getSafeSourceUrl(opportunity.url_source)} target="_blank" rel="noreferrer">
+                    Consulter la source <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
+              <div className="fd-review-actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={deciding !== null}
+                  onClick={() => decide(opportunity, 'valider')}
+                >
+                  {deciding?.id === opportunity.id && deciding.action === 'valider' ? 'Publication…' : 'Publier'}
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={deciding !== null}
+                  onClick={() => decide(opportunity, 'rejeter')}
+                >
+                  {deciding?.id === opportunity.id && deciding.action === 'rejeter' ? 'Rejet…' : 'Rejeter'}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+export function FundingTool({ role }) {
   const [query, setQuery] = useState('')
+  const [catalog, setCatalog] = useState({ loading: true, error: null, opportunities: [] })
+  const isAdmin = ADMIN_ROLES.includes(role)
+
+  const reloadCatalog = useCallback(async () => {
+    setCatalog((current) => ({ ...current, loading: true, error: null }))
+    try {
+      const opportunities = await apiGet('/analyses/opportunites-financement/')
+      setCatalog({ loading: false, error: null, opportunities })
+    } catch (err) {
+      setCatalog({ loading: false, error: err.message, opportunities: [] })
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    apiGet('/analyses/opportunites-financement/')
+      .then((opportunities) => {
+        if (active) setCatalog({ loading: false, error: null, opportunities })
+      })
+      .catch((err) => {
+        if (active) setCatalog({ loading: false, error: err.message, opportunities: [] })
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const results = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return GRANTS.filter((g) => !q || `${g.name} ${g.criteria}`.toLowerCase().includes(q))
-  }, [query])
+    const q = normalize(query.trim())
+    if (!q) return catalog.opportunities
+    return catalog.opportunities.filter((opportunity) =>
+      normalize([
+        opportunity.organisme,
+        opportunity.titre,
+        opportunity.description,
+        opportunity.criteres_eligibilite,
+        opportunity.secteur,
+      ].join(' ')).includes(q)
+    )
+  }, [catalog.opportunities, query])
 
   return (
     <div className="fd">
+      {isAdmin && <FundingReviewQueue onPublished={reloadCatalog} />}
+
+      <div className="fd-catalog-head">
+        <div>
+          <h2>Opportunités publiées</h2>
+          <p>Les aides et subventions vérifiées, transmises par leurs organismes sources.</p>
+        </div>
+        <button type="button" className="icon-button" onClick={reloadCatalog} disabled={catalog.loading} aria-label="Actualiser le catalogue">
+          <RefreshCw size={16} />
+        </button>
+      </div>
+
       <label className="fd-search">
         <Search size={17} />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher une opportunité"
+          placeholder="Rechercher par organisme, secteur ou critère"
           aria-label="Rechercher une opportunité de financement"
         />
       </label>
 
-      {results.length === 0 && <p className="drawer-lead">Aucune opportunité ne correspond à « {query} ».</p>}
+      {catalog.loading && <p className="fd-status" role="status">Chargement des aides et subventions…</p>}
+      {catalog.error && (
+        <div className="fd-error" role="alert">
+          <span>Impossible de charger les opportunités : {catalog.error}</span>
+          <button type="button" className="secondary-button" onClick={reloadCatalog}>Réessayer</button>
+        </div>
+      )}
+      {!catalog.loading && !catalog.error && catalog.opportunities.length === 0 && (
+        <p className="fd-status">Aucune opportunité publiée pour le moment. Revenez consulter le catalogue plus tard.</p>
+      )}
+      {!catalog.loading && !catalog.error && catalog.opportunities.length > 0 && results.length === 0 && (
+        <p className="fd-status">Aucune opportunité ne correspond à « {query} ».</p>
+      )}
 
       <div className="fd-grid">
-        {results.map((grant) => (
-          <GlassCard as="article" className={`fd-card ${grant.eligible ? 'eligible' : ''}`} key={grant.name}>
-            <div className="fd-top">
-              <span className="fd-logo">
-                <Landmark size={18} />
-              </span>
-              <StatusChip status={grant.eligible ? 'Éligible' : 'À vérifier'} />
-            </div>
-            <h3>{grant.name}</h3>
-            <p>{grant.criteria}</p>
-            <div className="fd-meta">
-              <div>
-                <span>Montant maximum</span>
-                <strong>{grant.amount}</strong>
+        {results.map((opportunity) => {
+          const deadline = formatDeadline(opportunity.date_limite)
+          const sourceUrl = getSafeSourceUrl(opportunity.url_source)
+
+          return (
+            <GlassCard as="article" className="fd-card" key={opportunity.id}>
+              <div className="fd-top">
+                <span className="fd-logo" aria-hidden="true"><Landmark size={18} /></span>
+                <StatusChip status="Publiée" />
               </div>
-              <div>
-                <span>Financement</span>
-                <strong>{grant.rate}</strong>
-              </div>
-            </div>
-            <div className="fd-deadline">
-              <Clock size={15} /> Dossier à déposer avant le {grant.deadline}
-            </div>
-            <div className="fd-actions">
-              <button
-                className={grant.eligible ? 'primary-button' : 'secondary-button'}
-                onClick={() => setDrawer(`funding-${grant.name}`)}
-              >
-                {grant.eligible ? 'Voir le dossier' : 'Comprendre les critères'} <ArrowUpRight size={15} />
-              </button>
-              {grant.eligible && (
-                <button className="icon-button" aria-label={`Ouvrir la candidature ${grant.name}`}>
-                  <ExternalLink size={16} />
-                </button>
+              <span className="fd-org">{opportunity.organisme}</span>
+              <h3>{opportunity.titre}</h3>
+              <p>{opportunity.description || 'Aucune description détaillée fournie.'}</p>
+
+              <dl className="fd-meta">
+                <div>
+                  <dt>Montant maximum</dt>
+                  <dd>{formatAmount(opportunity.montant_max, opportunity.devise)}</dd>
+                </div>
+                {opportunity.taux_financement_pct != null && (
+                  <div>
+                    <dt>Taux de financement</dt>
+                    <dd>{Number(opportunity.taux_financement_pct).toLocaleString('fr-FR')} %</dd>
+                  </div>
+                )}
+                {opportunity.secteur && (
+                  <div>
+                    <dt>Secteur</dt>
+                    <dd>{opportunity.secteur}</dd>
+                  </div>
+                )}
+              </dl>
+
+              {deadline && (
+                <div className="fd-deadline">
+                  <Clock size={15} /> Date limite : {deadline}
+                </div>
               )}
-            </div>
-          </GlassCard>
-        ))}
+
+              {opportunity.criteres_eligibilite && (
+                <details className="fd-more">
+                  <summary>Consulter les critères d’éligibilité</summary>
+                  <p>{opportunity.criteres_eligibilite}</p>
+                </details>
+              )}
+
+              <div className="fd-actions">
+                {sourceUrl ? (
+                  <a className="primary-button fd-source" href={sourceUrl} target="_blank" rel="noreferrer">
+                    Consulter l’offre <ArrowUpRight size={15} />
+                  </a>
+                ) : (
+                  <span className="fd-status">Source externe non renseignée</span>
+                )}
+                {sourceUrl && (
+                  <a className="icon-button" href={sourceUrl} target="_blank" rel="noreferrer" aria-label={`Ouvrir la source de ${opportunity.titre}`}>
+                    <ExternalLink size={16} />
+                  </a>
+                )}
+              </div>
+            </GlassCard>
+          )
+        })}
       </div>
     </div>
   )

@@ -1,7 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiGet, API_PREFIX } from '@/lib/apiClient'
+import { apiGet, apiGetAll, API_PREFIX } from '@/lib/apiClient'
+import {
+  getDailyIntervals,
+  getLocalDateString,
+  getPreviousDateString,
+  summarizeDailyConsumption,
+} from '@/modules/business-tools/services/woyofalCalculations'
 
 const unwrap = (r) => (Array.isArray(r) ? r : r?.results ?? [])
 const JOURS = { '7d': 7, '30d': 30, '90d': 90 }
@@ -10,6 +16,7 @@ const FACTEUR_REPLI_TCO2_PAR_KWH = 0.00042
 const nombre = (v) => Number(v) || 0
 const PRIORITES = { BASSE: 'Basse', MOYENNE: 'Moyenne', HAUTE: 'Haute', CRITIQUE: 'Critique' }
 const fmt = (n) => Math.round(n || 0).toLocaleString('fr-FR')
+const dateDuJour = () => getLocalDateString()
 
 const pctObjectif = (o) =>
   o?.valeur_cible ? Math.min(100, Math.round((nombre(o.progression_actuelle) / nombre(o.valeur_cible)) * 100)) : 0
@@ -35,41 +42,64 @@ function facteurTco2ParKwh(facteurs) {
  * (l'ancien code lisait date_debut/valeur_kwh/valeur_cible, qui n'existent pas : tous les
  * points tombaient à « aujourd'hui »).
  */
-export function useOverviewData(period = '7d') {
+export function useOverviewData(period = '7d', { enabled = true, scopeKey = '' } = {}) {
   const [tick, setTick] = useState(0)
+  const yesterday = getPreviousDateString(dateDuJour())
   const [state, setState] = useState({
-    loading: true, ready: false, error: null,
-    historique: [], resultats: [], objectifs: [], recommandations: [], hypotheses: [], anomalies: [], facteurs: [],
+    loading: false, ready: false, error: null,
+    historique: [], resultats: [], objectifs: [], progressions: [], recommandations: [], hypotheses: [], anomalies: [], facteurs: [],
+    observations: [], pointsSuivi: [], relevesRituel: [], rechargesRituel: [],
   })
 
   const reload = useCallback(() => setTick((t) => t + 1), [])
 
   useEffect(() => {
     let cancelled = false
-    async function load() {
-      setState((s) => ({ ...s, loading: true, error: null }))
-      let echecs = 0
-      const safe = (promise) => promise.then(unwrap).catch(() => { echecs += 1; return [] })
+    if (!enabled) return undefined
 
-      const [historique, resultats, objectifs, recommandations, hypotheses, anomalies, facteurs] = await Promise.all([
-        safe(apiGet(`${API_PREFIX.ENERGIES}/historiques-performance/`)),
-        safe(apiGet(`${API_PREFIX.ANALYSES}/resultats-metriques/`)),
-        safe(apiGet(`${API_PREFIX.ENERGIES}/objectifs/`)),
-        safe(apiGet(`${API_PREFIX.ANALYSES}/recommandations/`)),
-        safe(apiGet(`${API_PREFIX.ANALYSES}/hypotheses/`)),
-        safe(apiGet(`${API_PREFIX.ANALYSES}/anomalies/`)),
-        safe(apiGet(`${API_PREFIX.ENERGIES}/facteurs-emission/`)),
+    async function load() {
+      setState({
+        loading: true, ready: false, error: null,
+        historique: [], resultats: [], objectifs: [], progressions: [], recommandations: [], hypotheses: [], anomalies: [], facteurs: [],
+        observations: [], pointsSuivi: [], relevesRituel: [], rechargesRituel: [],
+      })
+      const echecs = []
+      const safe = (source, promise) => promise
+        .then(unwrap)
+        .catch(() => { echecs.push(source); return [] })
+      const safeAll = (source, promise) => promise
+        .catch(() => { echecs.push(source); return [] })
+
+      const [historique, resultats, objectifs, progressions, recommandations, hypotheses, anomalies, facteurs,
+        observations, pointsSuivi, relevesRituel, rechargesRituel] = await Promise.all([
+        safe('historiques-performance', apiGet(`${API_PREFIX.ENERGIES}/historiques-performance/`)),
+        safe('resultats-metriques', apiGet(`${API_PREFIX.ANALYSES}/resultats-metriques/`)),
+        safe('objectifs', apiGet(`${API_PREFIX.ENERGIES}/objectifs/`)),
+        safe('progression-objectifs', apiGet(`${API_PREFIX.ANALYSES}/progression-objectifs/`)),
+        safe('recommandations', apiGet(`${API_PREFIX.ANALYSES}/recommandations/`)),
+        safe('hypotheses', apiGet(`${API_PREFIX.ANALYSES}/hypotheses/`)),
+        safe('anomalies', apiGet(`${API_PREFIX.ANALYSES}/anomalies/`)),
+        safe('facteurs-emission', apiGet(`${API_PREFIX.ENERGIES}/facteurs-emission/`)),
+        safeAll('observations', apiGetAll(`${API_PREFIX.ANALYSES}/observations/`)),
+        safeAll('points-suivi-energetique', apiGetAll(`${API_PREFIX.ENERGIES}/points-suivi-energetique/`)),
+        safeAll('releves-rituel', apiGetAll(`${API_PREFIX.ENERGIES}/releves-rituel/?date_releve=${yesterday}`)),
+        safeAll('recharges-rituel-woyofal', apiGetAll(`${API_PREFIX.ENERGIES}/recharges-rituel-woyofal/?date_from=${yesterday}&date_to=${yesterday}`)),
       ])
       if (cancelled) return
       setState({
         loading: false, ready: true,
-        error: echecs === 7 ? 'Impossible de joindre le serveur.' : null,
-        historique, resultats, objectifs, recommandations, hypotheses, anomalies, facteurs,
+        error: echecs.length === 12
+          ? 'Impossible de charger les données de la vue d’ensemble.'
+          : echecs.length
+            ? `Certaines données n’ont pas pu être chargées (${echecs.join(', ')}).`
+            : null,
+        historique, resultats, objectifs, progressions, recommandations, hypotheses, anomalies, facteurs,
+        observations, pointsSuivi, relevesRituel, rechargesRituel,
       })
     }
     load()
     return () => { cancelled = true }
-  }, [tick])
+  }, [enabled, scopeKey, tick, yesterday])
 
   // Série du graphique : historique de performance si disponible, sinon les factures
   // importées (données réelles tant qu'aucune consolidation périodique n'existe).
@@ -113,8 +143,22 @@ export function useOverviewData(period = '7d') {
     const totalCible = serie.reduce((a, p) => a + p.target, 0)
     const economieHistorique = serie.reduce((a, p) => a + (p.economie || 0), 0)
 
-    const actifs = state.objectifs.filter((o) => o.statut === 'ACTIF')
+    const actifs = state.objectifs.filter((o) => ['ACTIF', 'ATTEINT'].includes(String(o.statut).toUpperCase()))
     const brouillons = state.objectifs.filter((o) => o.statut === 'BROUILLON')
+    const progressionsParObjectif = new Map(state.progressions.map((progression) => [String(progression.objectif_id), progression]))
+    const progressionObjectifs = actifs.map((objectif) => {
+      const progression = progressionsParObjectif.get(String(objectif.id))
+      const mesureReelleDisponible = progression?.mesuree != null && progression?.fiabilite !== 'initiale'
+      return {
+        id: objectif.id,
+        title: objectif.nom || 'Objectif énergétique',
+        measured: mesureReelleDisponible
+          ? `${Number(progression.mesuree).toLocaleString('fr-FR')} ${objectif.unite || ''}`.trim()
+          : null,
+        detail: progression?.detail || progression?.raison || 'Mesure réelle non disponible.',
+        source: progression?.source,
+      }
+    })
     const pctGlobal = actifs.length ? Math.round(actifs.reduce((s, o) => s + pctObjectif(o), 0) / actifs.length) : 0
 
     // Économie : consolidée dans l'historique (champ « economie »), sinon écart à la cible,
@@ -141,7 +185,103 @@ export function useOverviewData(period = '7d') {
 
     const pic = serie.reduce((max, p) => (p.value > (max?.value || 0) ? p : max), null)
     const anomalie = state.anomalies[0] || null
+    const pointsWoyofal = state.pointsSuivi.filter(
+      (point) => String(point.organisation) === String(scopeKey)
+        && point.mode_mesure === 'SOLDE_WOYOFAL',
+    )
+    const metriquesWoyofal = state.resultats
+      .filter((resultat) => String(resultat.organisation) === String(scopeKey)
+        && resultat.code_metrique === 'variation_woyofal_rituelle_vs_moyenne_recente')
+      .sort((a, b) => new Date(b.periode_fin || 0) - new Date(a.periode_fin || 0))
+    const derniereMetriqueWoyofal = metriquesWoyofal[0]
+    const anomalieWoyofal = derniereMetriqueWoyofal
+      ? state.anomalies.find((item) => String(item.resultat_metrique) === String(derniereMetriqueWoyofal.id))
+      : null
+    const recommandationWoyofal = anomalieWoyofal
+      ? state.recommandations.find((item) => String(item.anomalie) === String(anomalieWoyofal.id))
+      : null
+    const statutAnalyseWoyofal = pointsWoyofal.length
+      ? anomalieWoyofal
+        ? `Anomalie Woyofal ${anomalieWoyofal.statut === 'ACTION_CREATED' ? 'avec une recommandation' : 'à examiner'} : les relevés comparés couvrent uniquement 08 h–20 h.${recommandationWoyofal ? ` Recommandation : ${recommandationWoyofal.statut.toLowerCase()}.` : ''}`
+        : derniereMetriqueWoyofal
+          ? 'Analyse Woyofal effectuée : aucune variation dépassant le seuil de surveillance sur la fenêtre mesurée 08 h–20 h.'
+          : 'Analyse comparative Woyofal en attente : il faut au moins 4 journées complètes parmi les 7 précédentes pour établir une référence 08 h–20 h.'
+      : null
     const hypothesesEnAttente = state.hypotheses.filter((h) => h.statut === 'PROPOSEE')
+    const observationsHier = state.observations
+      .filter((observation) => String(observation.organisation) === String(scopeKey))
+      .filter((observation) => {
+        const date = new Date(observation.date_observation)
+        return !Number.isNaN(date.getTime()) && getLocalDateString(date) === yesterday
+      })
+      .sort((a, b) => new Date(a.date_observation) - new Date(b.date_observation))
+    const pointsOrganisation = state.pointsSuivi.filter(
+      (point) => String(point.organisation) === String(scopeKey),
+    )
+    const pointsDuJour = pointsOrganisation.flatMap((point) => {
+      const readings = state.relevesRituel.filter(
+        (reading) => String(reading.point_suivi) === String(point.id),
+      ).sort((a, b) => a.creneau.localeCompare(b.creneau))
+      if (!readings.length) return []
+      const recharges = state.rechargesRituel.filter(
+        (recharge) => String(recharge.point_suivi) === String(point.id),
+      )
+      const intervals = getDailyIntervals({
+        readings,
+        mode: point.mode_mesure,
+        recharges,
+        date: yesterday,
+      })
+      const dailySummary = summarizeDailyConsumption(intervals)
+      return [{
+        point: point.nom,
+        mode: point.mode_mesure,
+        dailySummary,
+        openingBalance: readings.find((reading) => reading.creneau === '08:00')?.valeur_kwh ?? null,
+        closingBalance: readings.find((reading) => reading.creneau === '20:00')?.valeur_kwh ?? null,
+        readings: readings.map((reading) => ({
+          time: reading.creneau,
+          value: reading.valeur_kwh,
+          note: reading.note?.trim() || '',
+        })),
+        intervals: intervals.map((interval, index) => {
+          const readingAtEnd = readings.find((reading) => reading.creneau === interval.endTime)
+          const intervalPrecedent = intervals[index - 1]
+          const rechargeCredits = recharges.reduce((totalCredits, recharge) => {
+            const rechargeDate = new Date(recharge.effectuee_le)
+            if (Number.isNaN(rechargeDate.getTime()) || getLocalDateString(rechargeDate) !== yesterday) {
+              return totalCredits
+            }
+            const time = `${String(rechargeDate.getHours()).padStart(2, '0')}:${String(rechargeDate.getMinutes()).padStart(2, '0')}`
+            return time > interval.startTime && time <= interval.endTime
+              ? totalCredits + nombre(recharge.kwh_credites)
+              : totalCredits
+          }, 0)
+
+          return {
+            startTime: interval.startTime,
+            endTime: interval.endTime,
+            value: interval.value,
+            changeFromPrevious: interval.value != null && intervalPrecedent?.value != null
+              ? interval.value - intervalPrecedent.value
+              : null,
+            note: readingAtEnd?.note?.trim() || '',
+            rechargeCredits,
+          }
+        }),
+      }]
+    })
+    const yesterdayLabel = new Date(`${yesterday}T12:00:00`).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+    })
+    const dailyRecap = observationsHier.length || pointsDuJour.length
+      ? {
+          dateLabel: yesterdayLabel,
+          observations: observationsHier.map((observation) => observation.texte).filter(Boolean),
+          points: pointsDuJour,
+        }
+      : null
 
     const maxSerie = Math.max(1, ...serie.map((p) => p.value))
     const tendanceBarres = serie.slice(-7).map((p) => Math.max(1, Math.round((p.value / maxSerie) * 8)))
@@ -150,16 +290,19 @@ export function useOverviewData(period = '7d') {
     if (anomalie) titreBriefing = `${state.anomalies.length} anomalie${state.anomalies.length > 1 ? 's' : ''} à examiner.`
     else if (serie.length) titreBriefing = 'Aucune anomalie détectée.'
 
-    const descriptionBriefing = serie.length
+    const descriptionBriefing = (serie.length
       ? `Votre consommation sur la période s’élève à ${fmt(total)} kWh${trend !== '—' ? ` (${trend} par rapport au point précédent)` : ''}.` +
         (hypothesesEnAttente.length ? ` ${hypothesesEnAttente.length} hypothèse${hypothesesEnAttente.length > 1 ? 's' : ''} IA attend${hypothesesEnAttente.length > 1 ? 'ent' : ''} votre validation.` : '')
-      : 'Importez une facture ou saisissez un relevé pour recevoir votre premier briefing.'
+      : 'Importez une facture ou saisissez un relevé pour recevoir votre premier briefing.') +
+      (statutAnalyseWoyofal ? ` ${statutAnalyseWoyofal}` : '')
 
     const decisionsData = [
       ...state.recommandations.filter((r) => r.statut !== 'DECIDEE').map((r) => ({
         title: r.titre,
         scope: r.description,
-        value: r.economie_estimee != null ? `${Number(r.economie_estimee).toLocaleString('fr-FR')} ${r.unite || ''}`.trim() : null,
+        value: Number(r.economie_estimee) > 0
+          ? `${Number(r.economie_estimee).toLocaleString('fr-FR')} ${r.unite || ''}`.trim()
+          : null,
         impact: PRIORITES[r.priorite] || undefined,
       })),
       ...hypothesesEnAttente.map((h) => ({
@@ -194,6 +337,7 @@ export function useOverviewData(period = '7d') {
       briefingData: {
         title: titreBriefing,
         description: descriptionBriefing,
+        dailyRecap,
         savedEnergy: fmt(savedKwh), savedEnergyUnit: 'kWh',
         co2Saved: co2, co2Unit: 't',
         badgeText: state.loading ? 'Mise à jour…' : 'À jour',
@@ -218,12 +362,13 @@ export function useOverviewData(period = '7d') {
             barsData: serie.slice(-7),
           },
       decisionsData,
+      progressionObjectifs,
       assistantData: {
         message: anomalie ? 'Une anomalie mérite votre attention.' : 'Posez une question sur vos données.',
         suggestions: ['Où est mon plus gros levier ?', 'Y a-t-il des anomalies à traiter ?'],
       },
     }
-  }, [chartSeries, state])
+  }, [chartSeries, scopeKey, state, yesterday])
 
   return {
     loading: state.loading && !state.ready,

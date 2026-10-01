@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import LogoLockup from "@/app/components/brand/LogoLockup"
 import { EmailTypeSelector } from "@/app/components/onboarding/EmailTypeSelector"
@@ -173,17 +174,17 @@ function IntroView({ onStart }) {
         Qualification Préalable
       </span>
       <h1 className="mt-4 font-display text-3xl sm:text-4xl font-bold text-navy leading-tight text-balance">
-        Parlons de vos informations énergétiques.
+        Essayez EcoScan pendant 14 jours.
       </h1>
       <p className="mt-5 text-slate leading-relaxed">
-        Cette demande d’accès aide à comprendre comment votre organisation collecte, analyse et suit ses informations énergétiques. Vos réponses situent vos besoins et les usages à explorer avec le prototype EcoScan.
+        Choisissez une formule, créez votre espace et vérifiez votre adresse e-mail : votre essai de 14 jours démarrera alors sur l’offre sélectionnée. Aucun paiement n’est demandé pour commencer.
       </p>
 
       <div className="mt-8 rounded-2xl border border-sky-border bg-sky-ui/40 p-5 space-y-3">
         {[
-        "Une demande d’accès pour votre organisation",
-        "Des informations pour situer vos besoins",
-        "Une première version conçue pour évoluer",
+        "14 jours pour découvrir la formule choisie",
+        "Votre offre reste liée à votre espace",
+        "Aucun paiement au démarrage de l’essai",
         ].map((item, idx) => (
           <div key={idx} className="flex items-center gap-3 text-xs sm:text-sm font-medium text-navy">
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-royal text-white text-[11px] font-bold">
@@ -302,27 +303,35 @@ function IdentityStepView({ data, onChange, errors }) {
 }
 
 /* ─── Step 5: Synthèse récapitulative ─── */
-function SummaryStepView({ data }) {
+function SummaryStepView({ data, selectedPlan }) {
   const profileNames = {
     pme: "PME & Site unique",
     entreprise: "Entreprise multi-sites",
     cabinet: "Cabinet de conseil",
     partenaire: "Partenaire / Institution",
   }
+  const monthlyPrice = Number(selectedPlan?.prix_mensuel ?? selectedPlan?.price)
+  const postTrialPrice = Number.isFinite(monthlyPrice)
+    ? monthlyPrice === 0
+      ? "Gratuit"
+      : `${new Intl.NumberFormat("fr-FR").format(monthlyPrice)} ${selectedPlan?.devise || "XOF"} / mois`
+    : "Sur devis"
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="font-display text-2xl font-bold text-navy">
-          Vérification avant envoi de votre dossier
+          Vérification avant la création de votre espace
         </h2>
         <p className="mt-1 text-sm text-slate">
-          Assurez-vous de l'exactitude de vos coordonnées pour l'envoi de vos identifiants.
+          Après confirmation de votre adresse e-mail, l’essai de 14 jours démarrera sur cette formule.
         </p>
       </div>
 
       <div className="rounded-2xl border border-sky-border bg-white p-6 shadow-sm space-y-4">
         {[
+          { label: "Formule choisie", val: selectedPlan?.nom || "—" },
+          { label: "Tarif après l’essai", val: postTrialPrice },
           { label: "Administrateur", val: data.nom || "—" },
           { label: "Email de connexion", val: data.email || "—" },
           { label: "Organisation", val: data.organisation || "—" },
@@ -340,7 +349,7 @@ function SummaryStepView({ data }) {
       </div>
 
       <div className="rounded-xl border border-royal/20 bg-sky-ui/60 p-4 text-xs text-navy leading-relaxed">
-        <span className="font-bold text-royal">Suite à votre demande :</span> Votre dossier sera enregistré en attente de validation. EcoScan est un prototype destiné à évoluer progressivement.
+        <span className="font-bold text-royal">Votre essai :</span> 14 jours d’accès à la formule choisie, sans paiement au démarrage. À la fin de l’essai, vous devrez souscrire pour continuer à utiliser EcoScan.
       </div>
     </div>
   )
@@ -348,11 +357,16 @@ function SummaryStepView({ data }) {
 
 /* ─── Main Onboarding Page ─── */
 export default function OnboardingPage() {
+  const router = useRouter()
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState("")
+  const [existingAccount, setExistingAccount] = useState(false)
   const [errors, setErrors] = useState({})
   const [planId, setPlanId] = useState("")
+  const [selectedPlan, setSelectedPlan] = useState(null)
+  const [planLoading, setPlanLoading] = useState(true)
+  const [planError, setPlanError] = useState("")
 
   const [data, setData] = useState({
     emailType: "",
@@ -371,8 +385,38 @@ export default function OnboardingPage() {
   })
 
   useEffect(() => {
-    setPlanId(new URLSearchParams(window.location.search).get("plan") || "")
-  }, [])
+    let cancelled = false
+    const chosenPlanId = new URLSearchParams(window.location.search).get("plan")
+
+    if (!chosenPlanId) {
+      router.replace("/abonnement")
+      return () => {
+        cancelled = true
+      }
+    }
+
+    setPlanId(chosenPlanId)
+    fetch("/api/billing/plans", { headers: { Accept: "application/json" }, cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Les formules ne sont pas disponibles pour le moment.")
+        const catalogue = await response.json()
+        const plans = Array.isArray(catalogue) ? catalogue : catalogue?.results
+        if (!Array.isArray(plans)) throw new Error("Le catalogue reçu est invalide.")
+        const plan = plans.find((item) => String(item.id) === chosenPlanId && item.actif !== false)
+        if (!plan) throw new Error("Cette formule n’est plus disponible. Choisissez une autre offre.")
+        if (!cancelled) setSelectedPlan(plan)
+      })
+      .catch((error) => {
+        if (!cancelled) setPlanError(error.message)
+      })
+      .finally(() => {
+        if (!cancelled) setPlanLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [router])
 
   const patchData = useCallback((updates) => {
     setData((prev) => ({ ...prev, ...updates }))
@@ -442,6 +486,7 @@ export default function OnboardingPage() {
   const handleSubmit = async () => {
     setLoading(true)
     setSubmitError("")
+    setExistingAccount(false)
 
     const payload = {
       nom_admin: data.nom.trim(),
@@ -455,7 +500,7 @@ export default function OnboardingPage() {
         sources: data.context.availableSources,
         maturite: data.context.dataMaturity,
         objectifs: data.goals,
-        ...(planId ? { plan_id: planId } : {}),
+        plan_id: planId,
       },
     }
 
@@ -476,7 +521,8 @@ export default function OnboardingPage() {
           (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("existe")) &&
           (msg.toLowerCase().includes("email") || msg.toLowerCase().includes("adresse") || msg.toLowerCase().includes("account"))
         ) {
-          setSubmitError("Cette adresse e-mail est déjà associée à un compte en cours. Contactez l'assistance EcoScan.")
+          setExistingAccount(true)
+          setSubmitError("Cette adresse e-mail est déjà associée à un compte EcoScan. Connectez-vous à cet espace pour choisir votre formule sans créer un nouveau compte.")
         } else {
           setSubmitError(msg || "Une erreur est survenue lors de l'enregistrement. Veuillez vérifier vos informations.")
         }
@@ -539,9 +585,16 @@ export default function OnboardingPage() {
           {/* Form Content Area */}
           <div className="signup-page__form-panel max-w-xl w-full mx-auto my-auto py-8">
             {isConfirmation ? (
-              <ConfirmationScreen nom={data.nom} email={data.email} />
+              <ConfirmationScreen nom={data.nom} email={data.email} planName={selectedPlan?.nom} />
             ) : (
               <div>
+                {planLoading && <p className="mb-5 text-sm text-slate" role="status">Vérification de la formule choisie…</p>}
+                {planError && (
+                  <div className="mb-5 rounded-xl border border-rust/30 bg-rust/5 p-4 text-sm text-rust" role="alert">
+                    <p>{planError}</p>
+                    <Link href="/abonnement" className="mt-2 inline-block font-semibold underline">Voir les formules disponibles</Link>
+                  </div>
+                )}
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={step}
@@ -633,13 +686,18 @@ export default function OnboardingPage() {
                       </div>
                     )}
 
-                    {step === 5 && <SummaryStepView data={data} />}
+                    {step === 5 && <SummaryStepView data={data} selectedPlan={selectedPlan} />}
                   </motion.div>
                 </AnimatePresence>
 
                 {submitError && (
                   <div className="mt-6 rounded-xl border border-rust/30 bg-rust/5 p-4 text-xs text-rust font-medium">
                     {submitError}
+                    {existingAccount && (
+                      <Link href="/connexion" className="mt-3 inline-block font-semibold text-navy underline underline-offset-4">
+                        Me connecter à mon compte existant
+                      </Link>
+                    )}
                   </div>
                 )}
 
@@ -657,7 +715,7 @@ export default function OnboardingPage() {
                     <button
                       type="button"
                       onClick={handleNextClick}
-                      disabled={loading}
+                      disabled={loading || planLoading || !selectedPlan || Boolean(planError)}
                       className="inline-flex items-center gap-2 rounded-full bg-orange-cta px-8 py-3.5 text-xs font-bold text-white shadow-royal transition-all hover:bg-orange-deep disabled:opacity-50"
                     >
                       {loading ? (

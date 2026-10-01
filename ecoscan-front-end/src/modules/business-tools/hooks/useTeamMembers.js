@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { apiGet, apiPost } from '@/lib/apiClient'
+import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/apiClient'
 
 export function useTeamMembers() {
   const [state, setState] = useState({ loading: true, error: null, membres: [] })
@@ -20,6 +20,19 @@ export function useTeamMembers() {
     await reload()
   }, [reload])
 
-  useEffect(() => { reload() }, [reload])
-  return { ...state, reload, inviter }
+  const definirAcces = useCallback(async (id, actif) => {
+    await apiPatch(`/membres/${id}/acces/`, { actif })
+    await reload()
+  }, [reload])
+
+  const supprimer = useCallback(async (id) => {
+    await apiDelete(`/membres/${id}/`)
+    await reload()
+  }, [reload])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void reload() }, 0)
+    return () => window.clearTimeout(timer)
+  }, [reload])
+  return { ...state, reload, inviter, definirAcces, supprimer }
 }

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { CalendarCheck, DollarSign, FileSpreadsheet, Landmark, ShieldCheck, Zap } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { WoyofalTool } from "./tools/WoyofalTool";
+import { EnergyRitualTool } from "./tools/EnergyRitualTool";
 import { RoiTool } from "./tools/RoiTool";
 import { FundingTool } from "./tools/FundingTool";
 import { ReportsTool } from "./tools/ReportsTool";
@@ -11,7 +11,7 @@ import { CalendarTool } from "./tools/CalendarTool";
 import { AdminComplianceTool } from "./admin/AdminComplianceTool";
 
 const TABS = [
-  { id: "woyofal", label: "Rituel Woyofal", icon: Zap },
+  { id: "woyofal", label: "Rituel énergétique", icon: Zap },
   { id: "roi", label: "Calculateur ROI", icon: DollarSign },
   { id: "funding", label: "Aides et subventions", icon: Landmark },
   { id: "reports", label: "Rapports", icon: FileSpreadsheet },
@@ -35,7 +35,7 @@ export function BusinessToolsView({ role, setDrawer, pendingCapture, onCaptureCo
     <div className="bt">
       <PageHeader
         title="Outils opérationnels pour piloter vos consommations"
-        subtitle="Relevez vos compteurs, simulez vos investissements et éditez vos livrables officiels."
+        subtitle="Comparez vos consommations par période, simulez vos investissements et éditez vos livrables."
       />
 
       <div className="tools-tabs" role="tablist" aria-label="Outils métier">
@@ -55,10 +55,10 @@ export function BusinessToolsView({ role, setDrawer, pendingCapture, onCaptureCo
       </div>
 
       {activeTab === "woyofal" && (
-        <WoyofalTool setDrawer={setDrawer} pendingCapture={pendingCapture} onCaptureConsumed={onCaptureConsumed} />
+        <EnergyRitualTool setDrawer={setDrawer} pendingCapture={pendingCapture} onCaptureConsumed={onCaptureConsumed} />
       )}
       {activeTab === "roi" && <RoiTool role={role} setDrawer={setDrawer} />}
-      {activeTab === "funding" && <FundingTool setDrawer={setDrawer} />}
+      {activeTab === "funding" && <FundingTool role={role} />}
       {activeTab === "reports" && (
         <ReportsTool setDrawer={setDrawer} template={template} setTemplate={setTemplate} period={period} setPeriod={setPeriod} />
       )}

@@ -1,0 +1,150 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env.docker}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env.docker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.docker}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - ecoscan_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ai:
+    build:
+      context: ../ECOSCAN IA
+      dockerfile: Dockerfile
+    env_file:
+      - path: ../ECOSCAN IA/.env
+        required: true
+    environment:
+      ENVIRONMENT: development
+      INTERNAL_TOKEN: ${ECOSCAN_AI_INTERNAL_TOKEN:?Set ECOSCAN_AI_INTERNAL_TOKEN in .env.docker}
+      DJANGO_API_URL: http://backend:8000
+      DJANGO_INTERNAL_TOKEN: ${ECOSCAN_DJANGO_INTERNAL_TOKEN:?Set ECOSCAN_DJANGO_INTERNAL_TOKEN in .env.docker}
+      RAG_STORE_PATH: /app/data/rag_store.json
+    ports:
+      - "127.0.0.1:${AI_HOST_PORT:-8001}:8001"
+    volumes:
+      - ecoscan_ai_data:/app/data
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  backend:
+    build:
+      context: ../ECOSCAN BACK-END/ecoscan-backend
+      dockerfile: Dockerfile
+    env_file:
+      - path: ../ECOSCAN BACK-END/ecoscan-backend/.env
+        required: true
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env.docker}
+      DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      SECURE_SSL_REDIRECT: "False"
+      SESSION_COOKIE_SECURE: "False"
+      CSRF_COOKIE_SECURE: "False"
+      DB_BACKEND: postgresql
+      DB_ALLOW_SQLITE_FALLBACK: "False"
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env.docker}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env.docker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.docker}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      DJANGO_MEDIA_ROOT: /app/media
+      FRONTEND_URL: http://localhost:${FRONTEND_HOST_PORT:-3001}
+      AI_SERVICE_URL: http://ai:8001
+      AI_SERVICE_INTERNAL_TOKEN: ${ECOSCAN_AI_INTERNAL_TOKEN:?Set ECOSCAN_AI_INTERNAL_TOKEN in .env.docker}
+      DJANGO_INTERNAL_TOKEN: ${ECOSCAN_DJANGO_INTERNAL_TOKEN:?Set ECOSCAN_DJANGO_INTERNAL_TOKEN in .env.docker}
+      BACKEND_BASE_URL: http://localhost:${API_HOST_PORT:-8000}
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-8000}:8000"
+    volumes:
+      - ecoscan_backend_media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      ai:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/admin/login/', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./ecoscan-front-end
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${API_HOST_PORT:-8000}/api
+    ports:
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-3001}:3001"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  vitrine:
+    build:
+      context: ./ecoscan
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${API_HOST_PORT:-8000}/api
+        NEXT_PUBLIC_BACKOFFICE_URL: http://localhost:${FRONTEND_HOST_PORT:-3001}
+    environment:
+      API_INTERNAL_URL: http://backend:8000/api
+    ports:
+      - "127.0.0.1:${VITRINE_HOST_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  ecoscan_db_data:
+  ecoscan_backend_media:
+  ecoscan_ai_data:

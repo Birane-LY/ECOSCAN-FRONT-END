@@ -17,6 +17,7 @@ export function OverviewView({
   briefingData,
   insightData,
   decisionsData,
+  progressionObjectifs,
   assistantData,
   chartSeries,
   loading=false,
@@ -83,6 +84,7 @@ export function OverviewView({
         <div className="ov-lower">
           <DecisionActions
             decisions={decisionsData}
+            progressionObjectifs={progressionObjectifs}
             completed={completed}
             onToggleCompleted={toggleCompleted}
             onOpenDrawer={setDrawer}

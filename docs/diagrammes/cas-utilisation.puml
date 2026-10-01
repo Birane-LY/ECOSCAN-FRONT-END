@@ -1,0 +1,71 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor Visiteur
+actor "Utilisateur d'organisation" as Membre
+actor "Administrateur d'organisation" as AdminOrg
+actor "Administrateur plateforme" as AdminPlateforme
+actor "Prestataire de paiement" as Paiement
+
+rectangle "EcoScan" {
+  package "Site vitrine" {
+    usecase "Consulter les offres" as UC_Offres
+    usecase "Créer un compte et\ndemander un abonnement" as UC_Inscription
+  }
+
+  package "Back-office organisation" {
+    usecase "S'authentifier" as UC_Auth
+    usecase "Gérer structure, sites\net compteurs" as UC_Structure
+    usecase "Importer une facture\nou un document" as UC_Import
+    usecase "Saisir relevés et\nrecharges énergétiques" as UC_Releves
+    usecase "Consulter métriques\net anomalies" as UC_Analyse
+    usecase "Examiner et confirmer\nou rejeter une hypothèse" as UC_Hypothese
+    usecase "Examiner et décider\nune recommandation" as UC_Recommandation
+    usecase "Gérer les objectifs et\nconsulter leur progression" as UC_Objectif
+    usecase "Consulter la mémoire\nstratégique" as UC_Memoire
+    usecase "Interroger l'assistant\nénergétique" as UC_Assistant
+    usecase "Gérer les membres" as UC_Equipe
+  }
+
+  package "Administration plateforme" {
+    usecase "Gérer organisations\net utilisateurs" as UC_Clients
+    usecase "Gérer plans et\nabonnements" as UC_Plans
+    usecase "Superviser la plateforme\net la facturation" as UC_Supervision
+  }
+}
+
+Visiteur --> UC_Offres
+Visiteur --> UC_Inscription
+UC_Inscription ..> UC_Auth : accès après création
+Membre --> UC_Auth
+Membre --> UC_Import
+Membre --> UC_Releves
+Membre --> UC_Analyse
+Membre --> UC_Hypothese
+Membre --> UC_Recommandation
+Membre --> UC_Objectif
+Membre --> UC_Memoire
+Membre --> UC_Assistant
+AdminOrg --> UC_Structure
+AdminOrg --> UC_Equipe
+AdminOrg --> UC_Objectif
+AdminOrg --> UC_Import
+AdminPlateforme --> UC_Clients
+AdminPlateforme --> UC_Plans
+AdminPlateforme --> UC_Supervision
+UC_Inscription ..> UC_Plans : sélection d'une offre
+UC_Plans --> Paiement : selon le parcours configuré
+
+note bottom of UC_Hypothese
+  La confirmation humaine peut produire
+  une recommandation proposée.
+  La décision d'adopter cette action
+  reste une opération distincte.
+end note
+
+note bottom of UC_Releves
+  La mesure rituelle Woyofal couvre
+  uniquement les relevés de 08 h à 20 h.
+end note
+@enduml

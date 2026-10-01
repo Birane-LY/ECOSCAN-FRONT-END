@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { apiPost } from "@/lib/apiClient";
 
-export function useDailyObservation(organisationId, compteurId = null) {
+export function useDailyObservation(organisationId, compteurId = null, observationDate = null) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
@@ -23,7 +23,9 @@ export function useDailyObservation(organisationId, compteurId = null) {
         const payload = {
           organisation: organisationId,
           texte: texteObservation.trim(),
-          date_observation: new Date().toISOString().split("T")[0],
+          date_observation: observationDate
+            ? new Date(`${observationDate}T20:00:00`).toISOString()
+            : new Date().toISOString(),
         };
 
         const data = await apiPost("/analyses/observations/", payload);
@@ -37,7 +39,7 @@ export function useDailyObservation(organisationId, compteurId = null) {
         setSaving(false);
       }
     },
-    [organisationId],
+    [organisationId, observationDate],
   );
 
   return {

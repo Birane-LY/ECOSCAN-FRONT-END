@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, X } from 'lucide-react'
+import { Ban, Check, RotateCcw, Trash2, X } from 'lucide-react'
 import { AppShell } from '@/components/layout'
 import { ADMIN_NAV_ITEMS } from './constants'
 import { AdminSidebar } from './components/layout/AdminSidebar'
@@ -49,6 +49,7 @@ export function PlatformAdminView() {
   const [chat, setChat] = useState(false)
   const [messages, setMessages] = useState([])
   const [message, setMessage] = useState('')
+  const [userActionId, setUserActionId] = useState(null)
 
   const notify = (text) => {
     setToast(text)
@@ -108,7 +109,8 @@ const fetchAdminData = useCallback(async () => {
 }, [handleLogout])
 
   useEffect(() => {
-    fetchAdminData()
+    const timer = window.setTimeout(() => { void fetchAdminData() }, 0)
+    return () => window.clearTimeout(timer)
   }, [fetchAdminData])
 
   const select = (v) => {
@@ -159,6 +161,33 @@ const fetchAdminData = useCallback(async () => {
       )
     } catch (err) {
       notify(err.response?.data?.detail || err.message || 'Impossible de créer cette invitation.')
+    }
+  }
+
+  const handleUserAccess = async (user) => {
+    setUserActionId(user.id)
+    try {
+      const res = await apiClient.patch(`/membres/${user.id}/acces/`, { actif: !user.actif })
+      setUsersList((current) => current.map((item) => item.id === user.id ? res.data : item))
+      notify(user.actif ? 'Accès désactivé.' : 'Accès activé.')
+    } catch (err) {
+      notify(err.response?.data?.detail || err.message || 'Impossible de modifier cet accès.')
+    } finally {
+      setUserActionId(null)
+    }
+  }
+
+  const handleUserDelete = async (user) => {
+    if (!window.confirm(`Supprimer définitivement le compte de ${user.nom} (${user.email}) ? Cette action est irréversible.`)) return
+    setUserActionId(user.id)
+    try {
+      await apiClient.delete(`/membres/${user.id}/`)
+      setUsersList((current) => current.filter((item) => item.id !== user.id))
+      notify('Compte supprimé.')
+    } catch (err) {
+      notify(err.response?.data?.detail || err.message || 'Impossible de supprimer ce compte.')
+    } finally {
+      setUserActionId(null)
     }
   }
 
@@ -216,11 +245,44 @@ const fetchAdminData = useCallback(async () => {
                   <PlatformTableView
                     title="Utilisateurs"
                     subtitle="Gérez les accès de l’équipe EcoScan."
-                    columns={['Utilisateur', 'E-mail', 'Rôle', 'État']}
-                    rows={usersList.map((u) => `${u.nom || u.full_name || u.email} · ${u.email || '-'} · ${u.role || '-'} · ${u.actif ? 'Actif' : 'Invitation en attente'}`)}
+                    columns={['Utilisateur', 'E-mail', 'Rôle', 'État', 'Actions']}
+                    rows={usersList.map((u) => [
+                      u.nom || u.full_name || u.email,
+                      u.email || '-',
+                      u.role || '-',
+                      u.actif ? 'Actif' : u.invitation_en_attente ? 'Invitation en attente' : 'Accès suspendu',
+                    ])}
                     notify={notify}
                     actionLabel="Inviter un Super Admin"
                     onAction={() => openModal('super-admin-invite')}
+                    renderActions={(_, index) => {
+                      const user = usersList[index]
+                      if (!user || user.id === userProfile?.id) return <span className="adm-self-label">Votre compte</span>
+                      return (
+                        <>
+                          {!user.invitation_en_attente && (
+                            <button
+                              type="button"
+                              className="quiet-button"
+                              disabled={userActionId === user.id}
+                              onClick={() => handleUserAccess(user)}
+                            >
+                              {user.actif ? <Ban size={14} /> : <RotateCcw size={14} />}
+                              {user.actif ? 'Désactiver' : 'Activer'}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="icon-button adm-delete-button"
+                            disabled={userActionId === user.id}
+                            onClick={() => handleUserDelete(user)}
+                            aria-label={`Supprimer le compte de ${user.nom || user.email}`}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </>
+                      )
+                    }}
                   />
                 )}
                 {view === 'system' && <SystemHealthView notify={notify} />}

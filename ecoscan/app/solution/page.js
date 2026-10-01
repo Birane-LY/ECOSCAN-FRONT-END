@@ -95,8 +95,8 @@ export default function SolutionPage() {
             Un espace clair pour comprendre vos consommations, repérer les
             écarts et suivre les décisions qui comptent.
           </p>
-          <Link href="/onboarding" className="solution-primary-link">
-            Créer votre espace <span aria-hidden="true">↗</span>
+          <Link href="/abonnement" className="solution-primary-link">
+            Choisir ma formule <span aria-hidden="true">↗</span>
           </Link>
         </div>
 

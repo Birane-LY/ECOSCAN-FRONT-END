@@ -21,6 +21,7 @@ export function ActivateAccountScreen({ uid, token, onCompleted }) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [activated, setActivated] = useState(false);
+  const [trialStarted, setTrialStarted] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -33,12 +34,13 @@ export function ActivateAccountScreen({ uid, token, onCompleted }) {
 
     setLoading(true);
     try {
-      await activateAccount({
+      const result = await activateAccount({
         uid,
         token,
         motDePasse: password,
         confirmationMotDePasse: passwordConfirmation,
       });
+      setTrialStarted(Boolean(result.essai_demarre));
       setActivated(true);
     } catch (error) {
       setErrorMessage(error.message || "Impossible d’activer votre compte.");
@@ -79,8 +81,9 @@ export function ActivateAccountScreen({ uid, token, onCompleted }) {
                 </div>
                 <h2>Bienvenue dans EcoScan.</h2>
                 <p className="lg-sub">
-                  Vous pouvez maintenant vous connecter avec votre nouveau mot
-                  de passe.
+                  {trialStarted
+                    ? "Votre essai gratuit de 14 jours démarre maintenant. Connectez-vous pour accéder à la formule choisie."
+                    : "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe."}
                 </p>
                 <button
                   type="button"
@@ -94,7 +97,7 @@ export function ActivateAccountScreen({ uid, token, onCompleted }) {
               <>
                 <h2>Activez votre compte.</h2>
                 <p className="lg-sub">
-                  Choisissez un mot de passe pour finaliser votre invitation.
+                  Choisissez un mot de passe pour activer votre compte.
                 </p>
 
                 {errorMessage && (

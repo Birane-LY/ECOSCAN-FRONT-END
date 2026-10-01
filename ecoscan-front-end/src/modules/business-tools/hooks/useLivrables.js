@@ -17,17 +17,30 @@ export function useLivrables() {
     }
   }, [])
 
-  const genererRapport = useCallback(async ({ ficheProjetId, template, periodLabel }) => {
+  const genererRapport = useCallback(async ({
+    organisationId,
+    ficheProjetId,
+    memoireId,
+    type,
+    template,
+    periodLabel,
+  }) => {
+    const typeLivrable = type || TEMPLATE_TO_TYPE[template] || template
     const created = await apiPost('/analyses/livrables/', {
-      fiche_projet: ficheProjetId,
-      nom: `EcoScan_Rapport_${periodLabel}`,
-      type: TEMPLATE_TO_TYPE[template] || template,
+      organisation: organisationId,
+      fiche_projet: ficheProjetId || null,
+      memoire: memoireId || null,
+      nom: `EcoScan_${typeLivrable === 'MEMOIRE' ? 'Memoire' : 'Rapport'}_${periodLabel}`.slice(0, 180),
+      type: typeLivrable,
     })
-    await apiPost(`/analyses/livrables/${created.id}/generer/`)
+    const generated = await apiPost(`/analyses/livrables/${created.id}/generer/`)
     await reload()
-    return created
+    return generated
   }, [reload])
 
-  useEffect(() => { reload() }, [reload])
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void reload() }, 0)
+    return () => window.clearTimeout(timer)
+  }, [reload])
   return { ...state, reload, genererRapport }
 }

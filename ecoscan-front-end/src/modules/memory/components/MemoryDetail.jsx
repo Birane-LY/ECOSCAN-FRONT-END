@@ -5,9 +5,9 @@ import { Check, Database, MessageSquareText, TrendingDown, TrendingUp, X } from 
 import { TickProgress } from '@/components/instruments'
 
 const STATUT = {
-  A_VERIFIER: { label: 'À vérifier', cls: 'chip-alert' },
-  PARTIELLEMENT_CONFIRMEE: { label: 'Partiellement confirmée', cls: '' },
-  CONFIRMEE: { label: 'Confirmée', cls: 'chip-ok' },
+  A_VERIFIER: { label: 'Impact à mesurer', cls: 'chip-alert' },
+  PARTIELLEMENT_CONFIRMEE: { label: 'Impact partiellement confirmé', cls: '' },
+  CONFIRMEE: { label: 'Impact confirmé', cls: 'chip-ok' },
 }
 const fcfa = (v) => `${Number(v).toLocaleString('fr-FR')} FCFA`
 

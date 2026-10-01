@@ -54,6 +54,54 @@ export async function apiGet(path) {
   return data.results ?? data
 }
 
+export async function apiGetAll(path) {
+  const initialUrl = new URL(buildUrl(path))
+  const origin = initialUrl.origin
+  const visited = new Set()
+  const items = []
+  let nextUrl = initialUrl
+
+  while (nextUrl) {
+    if (nextUrl.origin !== origin || visited.has(nextUrl.href)) {
+      throw new Error('La pagination du serveur contient une URL invalide.')
+    }
+    visited.add(nextUrl.href)
+
+    const response = await fetch(nextUrl.href, { headers: authHeaders() })
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}))
+      throw new Error(body.detail || body.error || `Erreur ${response.status} lors du chargement des données.`)
+    }
+
+    const data = await response.json()
+    if (Array.isArray(data)) {
+      items.push(...data)
+      nextUrl = null
+      continue
+    }
+    if (!Array.isArray(data.results)) {
+      throw new Error('Réponse paginée inattendue du serveur.')
+    }
+
+    items.push(...data.results)
+    nextUrl = data.next ? new URL(data.next, nextUrl) : null
+  }
+
+  return items
+}
+
+export async function apiDownload(path) {
+  const url = buildUrl(path)
+  const response = await fetch(url, { headers: authHeaders() })
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    throw new Error(body.detail || body.error || `Erreur ${response.status} sur ${url}`)
+  }
+
+  return response.blob()
+}
+
 export async function apiPost(path, body = {}, options = {}) {
   const url = buildUrl(path)
 
@@ -108,6 +156,32 @@ export async function apiPost(path, body = {}, options = {}) {
     }
 
     throw error
+  }
+
+  return response.json()
+}
+
+export async function apiUpload(path, formData, options = {}) {
+  const url = buildUrl(path)
+  const response = await fetch(url, {
+    ...options,
+    method: 'POST',
+    headers: {
+      ...authHeaders(),
+      ...(options.headers || {}),
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    const detail = errorData.detail || errorData.error
+    const message = typeof detail === 'string'
+      ? detail
+      : Object.values(errorData)
+        .flatMap((messages) => Array.isArray(messages) ? messages : [messages])
+        .find((value) => typeof value === 'string')
+    throw new Error(message || `Erreur ${response.status} lors de l’envoi du fichier.`)
   }
 
   return response.json()

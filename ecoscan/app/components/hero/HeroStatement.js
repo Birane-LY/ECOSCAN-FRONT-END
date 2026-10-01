@@ -31,9 +31,6 @@ export default function HeroStatement() {
             Découvrir la démarche
             <span aria-hidden="true">↗</span>
           </Link>
-          <a href="#pour-qui" className="home-hero__secondary">
-            À qui s’adresse EcoScan ?
-          </a>
         </div>
       </div>
 

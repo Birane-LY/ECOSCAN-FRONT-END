@@ -3,24 +3,24 @@
 import { useState, useCallback } from 'react'
 import { apiPost } from '@/lib/apiClient'
 
-// Suggestions alignÃ©es sur les donnÃ©es rÃ©ellement collectÃ©es : index par crÃ©neau
+// Suggestions alignées sur les données réellement collectées : index par créneau
 // (DonneeEnergetique.creneau), soldes Woyofal, factures, anomalies.
 export const ASSISTANT_SUGGESTIONS = [
-  'Que sâ€™est-il passÃ© sur ma consommation ?',
-  'Compare mes crÃ©neaux du jour',
+  'Que s’est-il passé sur ma consommation ?',
+  'Compare mes créneaux du jour',
   'Combien de jours me reste-t-il avec mon solde ?',
-  'Y a-t-il des anomalies Ã  traiter ?',
+  'Y a-t-il des anomalies à traiter ?',
 ]
 
 export const CONTEXTUAL_SUGGESTIONS = [
-  'OÃ¹ est mon plus gros levier ?',
-  'Compare mes derniÃ¨res factures',
-  'OÃ¹ en sont mes objectifs ?',
+  'Où est mon plus gros levier ?',
+  'Compare mes dernières factures',
+  'Où en sont mes objectifs ?',
 ]
 
 const MESSAGE_ACCUEIL = {
   from: 'ai',
-  text: 'Bonjour, je suis EcoScan. Posez-moi une question sur vos donnÃ©es Ã©nergÃ©tiques.',
+  text: 'Bonjour, je suis EcoScan. Posez-moi une question sur vos données énergétiques.',
 }
 
 const MAX_HISTORIQUE = 6
@@ -36,8 +36,8 @@ export function useAssistant() {
     const question = (typeof text === 'string' ? text : input).trim()
     if (!question || thinking) return
 
-    // Derniers Ã©changes envoyÃ©s au backend : sans eux, Â« Confirme cette action Â»
-    // ou Â« Montre-moi les sources Â» arrivaient sans aucun contexte.
+    // Derniers échanges envoyés au backend : sans eux, « Confirme cette action »
+    // ou « Montre-moi les sources » arrivaient sans aucun contexte.
     const historique = messages
       .filter((m) => m !== MESSAGE_ACCUEIL)
       .slice(-MAX_HISTORIQUE)
@@ -53,7 +53,7 @@ export function useAssistant() {
       setMessages((m) => [...m, { from: 'ai', text: res.answer, sources: res.sources ?? [] }])
     } catch (err) {
       setError(err.message)
-      setMessages((m) => [...m, { from: 'ai', text: `DÃ©solÃ©, une erreur est survenue : ${err.message}` }])
+      setMessages((m) => [...m, { from: 'ai', text: `Désolé, une erreur est survenue : ${err.message}` }])
     } finally {
       setThinking(false)
     }

@@ -4,10 +4,17 @@ import React, { useMemo, useState } from 'react'
 import { CX, CY, H, W } from './memoryLayout'
 
 const TONES = {
-  ok: ['#9af0ec', '#1f91a6'],
-  gold: ['#ffeaa0', '#c8901a'],
-  alert: ['#ffc2ba', '#d6453e'],
-  pearl: ['#ffffff', '#a9bccf'],
+  ok: 'var(--mem-ok)',
+  gold: 'var(--mem-gold)',
+  alert: 'var(--mem-alert)',
+  pearl: 'var(--mem-pearl)',
+}
+
+const GROUP_TONES = {
+  CONFIRMEE: 'ok',
+  PARTIELLE: 'gold',
+  A_VERIFIER: 'alert',
+  HYPOTHESE: 'pearl',
 }
 
 const short = (s = '', n = 38) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
@@ -50,37 +57,16 @@ export function MemoryGraph({ nodes, edges, orgName, total, selectedId, onSelect
 
   return (
     <svg className="mg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="group" aria-label="Constellation de la mémoire stratégique">
-      <defs>
-        {Object.entries(TONES).map(([k, [a, b]]) => (
-          <radialGradient key={k} id={`mg-${k}`} cx="36%" cy="30%" r="80%">
-            <stop offset="0%" stopColor={a} />
-            <stop offset="100%" stopColor={b} />
-          </radialGradient>
-        ))}
-        <radialGradient id="mg-core" cx="36%" cy="30%" r="80%">
-          <stop offset="0%" className="core-sph-0" />
-          <stop offset="100%" className="core-sph-2" />
-        </radialGradient>
-        <radialGradient id="mg-halo" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" className="core-glow-s" stopOpacity="0.32" />
-          <stop offset="100%" className="core-glow-s" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-
       <g className="mg-zoom" style={{ transform: `scale(${zoom})` }}>
-        <circle cx={CX} cy={CY} r="230" fill="url(#mg-halo)" />
-
-        {edges.map((e, i) => (
+        {edges.map((e) => (
           <path
             key={e.id}
             d={e.d}
-            pathLength="100"
-            className={`mg-edge ${e.type} ${edgeState(e)}`}
-            style={{ '--i': i }}
+            className={`mg-edge ${e.type} ${edgeState(e)} tone-${GROUP_TONES[e.group]}`}
           />
         ))}
 
-        {nodes.map((n, i) => {
+        {nodes.map((n) => {
           const isLeaf = n.kind !== 'hub'
           const selected = selectedId === n.id
           const showLabel = isLeaf && (focusId === n.id || selected)
@@ -88,7 +74,7 @@ export function MemoryGraph({ nodes, edges, orgName, total, selectedId, onSelect
             <g
               key={n.id}
               transform={`translate(${n.x} ${n.y})`}
-              className={`mg-node ${n.kind} ${dim(n.id)} ${selected ? 'is-sel' : ''}`}
+              className={`mg-node ${n.kind} tone-${n.tone} ${dim(n.id)} ${selected ? 'is-sel' : ''}`}
               role="button"
               tabIndex={0}
               aria-label={isLeaf ? `${n.kind === 'hypothese' ? 'Hypothèse' : 'Mémoire'} : ${short(n.title, 80)}` : `${n.label}, ${n.count}`}
@@ -100,11 +86,10 @@ export function MemoryGraph({ nodes, edges, orgName, total, selectedId, onSelect
               onClick={() => onSelect(n.id)}
               onKeyDown={(e) => activate(e, n.id)}
             >
-              <g className="mg-pop" style={{ '--i': i }}>
+              <g className="mg-pop">
                 <circle r={n.r + 10} className="mg-hit" />
                 <circle r={n.r + 5} className="mg-ring" />
-                <circle r={n.r} fill={`url(#mg-${n.tone})`} className="mg-sphere" strokeDasharray={n.kind === 'hypothese' ? '3 3' : undefined} />
-                <ellipse cx={-n.r * 0.3} cy={-n.r * 0.38} rx={n.r * 0.42} ry={n.r * 0.24} className="mg-spec" />
+                <circle r={n.r} fill={TONES[n.tone]} className="mg-sphere" strokeDasharray={n.kind === 'hypothese' ? '3 3' : undefined} />
                 {n.kind === 'hub' && (
                   <text y={n.r + 20} textAnchor="middle" className="mg-label hub">
                     {n.label}
@@ -124,14 +109,13 @@ export function MemoryGraph({ nodes, edges, orgName, total, selectedId, onSelect
         {/* noyau : l'organisation, avec le nombre de mémoires en chiffres points */}
         <g
           transform={`translate(${CX} ${CY})`}
-          className={`mg-node center ${dim('center')}`}
+          className={`mg-node center tone-core ${dim('center')}`}
           onPointerEnter={() => setHoverId('center')}
           onPointerLeave={() => setHoverId(null)}
         >
-          <g className="mg-pop" style={{ '--i': 0 }}>
+          <g className="mg-pop">
             <circle r="52" className="mg-ring" />
-            <circle r="38" fill="url(#mg-core)" className="mg-sphere" />
-            <ellipse cx="-12" cy="-16" rx="17" ry="9" className="mg-spec" />
+            <circle r="38" fill="var(--mem-core)" className="mg-sphere" />
             <text y="2" textAnchor="middle" dominantBaseline="central" className="mg-center-num">
               {total}
             </text>

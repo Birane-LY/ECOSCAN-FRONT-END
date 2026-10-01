@@ -11,9 +11,10 @@ import { HypothesisReviewBanner } from "@/modules/memory/components/HypothesisRe
 import { MemoryGraph } from "./MemoryGraph";
 import { MemoryDetail } from "./MemoryDetail";
 import { MemoryTimeline } from "./MemoryTimeline";
+import { RitualEnergyHistory } from "@/modules/memory/components/RitualEnergyHistory";
 import { GROUPS, buildGraph, monthKey } from "./memoryLayout";
 
-const FILTRES = ["Toutes", "Confirmées", "À vérifier"];
+const FILTRES = ["Toutes", "Impacts à mesurer", "Impacts partiellement confirmés", "Impacts confirmés"];
 const fmt = (n) => Math.round(n).toLocaleString("fr-FR");
 
 export function MemoryView({ onAsk }) {
@@ -94,7 +95,9 @@ export function MemoryView({ onAsk }) {
 
   const listeVisible = memoires.filter((m) => {
     if (filtre === "Toutes") return true;
-    if (filtre === "Confirmées") return m.statut === "CONFIRMEE";
+    if (filtre === "Impacts confirmés") return m.statut === "CONFIRMEE";
+    if (filtre === "Impacts à mesurer") return m.statut === "A_VERIFIER";
+    if (filtre === "Impacts partiellement confirmés") return m.statut === "PARTIELLEMENT_CONFIRMEE";
     return m.statut !== "CONFIRMEE";
   });
 
@@ -240,6 +243,7 @@ export function MemoryView({ onAsk }) {
           </section>
         </>
       )}
+      <RitualEnergyHistory organisationId={organisation?.id} />
     </>
   );
 }

@@ -28,6 +28,7 @@ import { useCommandPaletteShortcut } from "@/hooks/useCommandPaletteShortcut";
 import { usePreferences } from "@/modules/settings/hooks/usePreferences";
 import { OnboardingWizard } from "@/modules/onboarding/components/OnboardingWizard";
 import { MemoryView } from "@/modules/memory/components/MemoryView";
+import { SubscriptionNotice } from "@/modules/billing/components/SubscriptionNotice";
 
 import {
   AppShell,
@@ -39,6 +40,7 @@ import {
   DetailDrawer,
 } from "@/components/layout";
 import { ActionToast } from "@/components/ui/ActionToast";
+import { apiGet, apiPost } from "@/lib/apiClient";
 
 const INITIAL_NOTIFICATIONS = [
   {
@@ -72,6 +74,7 @@ export default function MainPage() {
     activeOrganisation,
     orgLoading,
     orgError,
+    refreshOrganisations,
     login,
     logout,
     switchOrganisation,
@@ -84,6 +87,7 @@ export default function MainPage() {
   const [view, setView] = useState("overview");
   const [drawer, setDrawer] = useState(null);
   const [activationParams, setActivationParams] = useState(null);
+  const [paymentReturn, setPaymentReturn] = useState(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -138,7 +142,11 @@ export default function MainPage() {
     briefingData,
     insightData,
     decisionsData,
-  } = useOverviewData(period);
+    progressionObjectifs,
+  } = useOverviewData(period, {
+    enabled: authenticated && !orgLoading && Boolean(activeOrganisation),
+    scopeKey: activeOrganisation?.id || "",
+  });
 
   // --- Palette de commandes ---
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -192,6 +200,108 @@ export default function MainPage() {
     if (authenticated && isSuperAdmin) router.replace("/admin");
   }, [authenticated, isSuperAdmin, router]);
 
+  useEffect(() => {
+    if (!authenticated || typeof window === "undefined") return undefined;
+    const returnParams = new URLSearchParams(window.location.search);
+    const rawPaymentStatus = returnParams.get("paiement");
+    const embeddedToken = rawPaymentStatus?.match(/[?&]token=([^&]+)/)?.[1];
+    const paymentToken = returnParams.get("token") ||
+      (embeddedToken ? new URLSearchParams(`token=${embeddedToken}`).get("token") : null);
+    const paymentStatus = rawPaymentStatus?.split(/[?&]/)[0];
+    if (!paymentToken && paymentStatus === "annule") {
+      const timer = window.setTimeout(() => {
+        setPaymentReturn({
+          type: "cancelled",
+          message: "Le paiement a été annulé. Vous pouvez reprendre la souscription depuis votre espace.",
+        });
+      }, 0);
+      window.history.replaceState({}, "", window.location.pathname);
+      return () => window.clearTimeout(timer);
+    }
+    if (!paymentToken && paymentStatus !== "retour") return undefined;
+
+    let cancelled = false;
+    let timer;
+    const initialTimer = window.setTimeout(() => {
+      setPaymentReturn({
+        type: "checking",
+        message: "Paiement reçu. Vérification de la confirmation par le prestataire…",
+      });
+    }, 0);
+    const deadline = Date.now() + 60000;
+
+    const clearPaymentReturn = () => {
+      const returnUrl = new URL(window.location.href);
+      returnUrl.searchParams.delete("token");
+      returnUrl.searchParams.delete("paiement");
+      window.history.replaceState(
+        {},
+        "",
+        `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`,
+      );
+    };
+
+    const verifyPayment = async () => {
+      try {
+        const confirmation = paymentToken
+          ? await apiPost("/billing/abonnements/confirmer-retour/", { token: paymentToken })
+          : null;
+        const subscriptions = confirmation ? [] : await apiGet("/billing/abonnements/");
+        const activeSubscription = confirmation?.status === "confirmed" ||
+          (Array.isArray(subscriptions) && subscriptions.find((item) =>
+            item.statut === "ACTIVE" && new Date(item.fin_periode).getTime() > Date.now()
+          ));
+        if (activeSubscription) {
+          await refreshOrganisations();
+          if (cancelled) return;
+          setPaymentReturn({
+            type: "success",
+            message: "Votre paiement est confirmé. Votre accès EcoScan est maintenant actif.",
+          });
+          clearPaymentReturn();
+          return;
+        }
+        if (confirmation?.status === "cancelled" || confirmation?.status === "failed") {
+          if (cancelled) return;
+          setPaymentReturn({
+            type: "cancelled",
+            message: confirmation.status === "cancelled"
+              ? "Le paiement a été annulé. Vous pouvez reprendre la souscription depuis votre espace."
+              : "Le paiement a échoué. Aucune somme n’a été validée ; vous pouvez réessayer.",
+          });
+          clearPaymentReturn();
+          return;
+        }
+        if (Date.now() >= deadline) {
+          if (cancelled) return;
+          setPaymentReturn({
+            type: "pending",
+            message: "Le prestataire n’a pas encore confirmé le paiement. Votre accès sera activé dès réception de la confirmation. Actualisez dans quelques instants.",
+          });
+          return;
+        }
+      } catch {
+        if (Date.now() >= deadline) {
+          if (cancelled) return;
+          setPaymentReturn({
+            type: "pending",
+            message: "La confirmation du paiement est temporairement indisponible. Réessayez d’actualiser votre espace dans quelques instants.",
+          });
+          return;
+        }
+      }
+
+      if (!cancelled) timer = window.setTimeout(verifyPayment, 3000);
+    };
+
+    void verifyPayment();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(initialTimer);
+      window.clearTimeout(timer);
+    };
+  }, [authenticated, refreshOrganisations]);
+
   if (!authenticated && activationParams) {
     return (
       <ActivateAccountScreen
@@ -211,6 +321,26 @@ export default function MainPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
+    );
+  }
+
+  if (!isSuperAdmin && !activeOrganisation) {
+    return (
+      <main className="eco-shell" data-theme={darkMode ? "night" : "light"}>
+        <div className="eco-main">
+          {paymentReturn && (
+            <div className={`billing-return-notice is-${paymentReturn.type}`} role="status">
+              {paymentReturn.message}
+              {paymentReturn.type === "pending" && (
+                <button type="button" onClick={() => window.location.reload()}>
+                  Vérifier à nouveau
+                </button>
+              )}
+            </div>
+          )}
+          <SubscriptionNotice role={activeRole} onAccessGranted={refreshOrganisations} />
+        </div>
+      </main>
     );
   }
 
@@ -250,6 +380,7 @@ export default function MainPage() {
             briefingData={briefingData}
             insightData={insightData}
             decisionsData={decisionsData}
+            progressionObjectifs={progressionObjectifs}
             assistantData={{
               assistantName: "Assistant EcoScan",
               subtitle: "Répond à partir de vos données Django",
@@ -329,6 +460,17 @@ export default function MainPage() {
         setHelpOpen={setHelpOpen}
       />
 
+      {paymentReturn && (
+        <div className={`billing-return-notice is-${paymentReturn.type}`} role="status">
+          {paymentReturn.message}
+          {paymentReturn.type === "pending" && (
+            <button type="button" onClick={() => window.location.reload()}>
+              Vérifier à nouveau
+            </button>
+          )}
+        </div>
+      )}
+      <SubscriptionNotice role={activeRole} onAccessGranted={refreshOrganisations} />
       <div className="eco-main">{renderView()}</div>
 
       <BottomNav view={view} go={go} onCapture={() => setCaptureOpen(true)} />

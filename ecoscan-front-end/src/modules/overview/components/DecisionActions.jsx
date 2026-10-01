@@ -17,6 +17,7 @@ function normalize(item) {
 
 export function DecisionActions({
   decisions = [],
+  progressionObjectifs = [],
   completed = [],
   streakDays = 0,
   onToggleCompleted,
@@ -36,7 +37,11 @@ export function DecisionActions({
       </div>
 
       {list.length === 0 && (
-        <p className="dec-empty">Aucune décision à prendre. Créez un objectif ou importez des données pour en générer.</p>
+        <p className="dec-empty">
+          {progressionObjectifs.length
+            ? 'Aucune décision en attente. Consultez ci-dessous la progression mesurée de vos objectifs.'
+            : 'Aucune décision à prendre. Créez un objectif ou importez des données pour en générer.'}
+        </p>
       )}
 
       {list.map((item, i) => {
@@ -67,6 +72,24 @@ export function DecisionActions({
           </div>
         )
       })}
+
+      {progressionObjectifs.length > 0 && (
+        <div className="dec-progress">
+          <h3>Progression mesurée des objectifs</h3>
+          {progressionObjectifs.map((item) => (
+            <div className="dec-row" key={item.id}>
+              <div className="dec-copy">
+                <strong>{item.title}</strong>
+                <span>{item.detail}</span>
+              </div>
+              <div className="dec-value">
+                <strong>{item.measured ?? 'En attente de données'}</strong>
+                <small>{item.measured ? 'mesuré' : 'non mesuré'}</small>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="dec-foot">
         <TickProgress value={pct} ticks={22} label="Décisions prises" />

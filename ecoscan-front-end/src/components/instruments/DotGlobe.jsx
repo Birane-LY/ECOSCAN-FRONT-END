@@ -256,7 +256,7 @@ export function DotGlobe({ className = '' }) {
           ctx.fill()
           ctx.shadowBlur = 0
           ctx.fillStyle = 'rgba(255,236,214,0.95)'
-          ctx.font = '500 13px Outfit, sans-serif'
+          ctx.font = '500 13px "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Inter, sans-serif'
           ctx.fillText(c.n, p.x + 12, p.y - 10)
         } else {
           ctx.fillStyle = 'rgba(190,240,250,0.95)'

@@ -5,12 +5,10 @@ import { motion } from "framer-motion"
 import LogoLockup from "@/app/components/brand/LogoLockup"
 
 /**
- * ConfirmationScreen — Écran de confirmation de l'onboarding.
- * Règle d'or : "demande envoyée, validation en attente, compte NON actif".
- * Le backend crée role=ADMIN_ORGANISATION actif=false.
+ * ConfirmationScreen — Confirmation de création du compte avant activation de l'essai.
  * Palette SENELEC x EcoScan (Navy, Royal, Cyan Data, Sky UI).
  */
-export function ConfirmationScreen({ nom, email }) {
+export function ConfirmationScreen({ nom, email, planName }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -37,28 +35,28 @@ export function ConfirmationScreen({ nom, email }) {
 
       {/* Heading */}
       <h2 className="mt-6 font-display text-2xl md:text-3xl font-bold text-navy">
-        Votre demande est bien arrivée.
+        Vérifiez votre adresse e-mail.
       </h2>
 
       {/* Statut d'attente (calme, transparent) */}
       <div className="mt-5 rounded-2xl border border-sky-border bg-sky-ui/60 px-6 py-4 shadow-sm">
         <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-slate">
-          Statut de votre dossier
+          Prochaine étape
         </p>
         <div className="mt-2 flex items-center justify-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-amber animate-pulse" aria-hidden="true" />
           <span className="font-display text-sm font-bold text-navy">
-            En attente de validation administrative
+            Activation de votre compte
           </span>
         </div>
       </div>
 
       {/* Explication */}
       <p className="mt-6 text-sm leading-relaxed text-slate text-pretty">
-        L'équipe EcoScan examine votre demande pour configurer les paramètres de votre secteur.{" "}
+        Votre formule {planName ? <strong className="font-semibold text-navy">{planName}</strong> : "choisie"} est réservée à votre espace.{" "}
         {email ? (
           <>
-            Vous recevrez le lien d'activation sécurisé à l'adresse{" "}
+            Ouvrez le lien d’activation envoyé à{" "}
             <span className="font-semibold text-navy">{email}</span>.
           </>
         ) : (
@@ -73,9 +71,9 @@ export function ConfirmationScreen({ nom, email }) {
         </p>
         <ol className="mt-4 space-y-3.5">
           {[
-            "Examen de votre demande d’accès à EcoScan",
-            "Notification d'activation par e-mail avec vos accès administrateur",
-            "Import guidé de vos premières factures d'énergie",
+              "Activez votre compte depuis le lien reçu par e-mail",
+              "Votre essai gratuit de 14 jours démarre sur la formule choisie",
+              "Définissez votre mot de passe et connectez-vous à EcoScan",
           ].map((step, i) => (
             <li key={i} className="flex items-start gap-3 text-xs md:text-sm">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-ui border border-sky-border font-mono text-[11px] font-bold text-royal">

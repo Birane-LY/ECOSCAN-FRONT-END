@@ -44,7 +44,7 @@ export function CtaFinalSection() {
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
-              href="/onboarding"
+              href="/abonnement"
               className="inline-flex items-center gap-2 rounded-full bg-orange-cta px-8 py-4 text-sm font-bold text-white shadow-royal transition-all hover:-translate-y-0.5 hover:bg-orange-deep hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-cta"
             >
               Commencer votre parcours

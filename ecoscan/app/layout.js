@@ -1,12 +1,4 @@
-import { Outfit } from "next/font/google"
 import "./globals.css"
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
-})
 
 export const metadata = {
   title: "EcoScan — Donner une forme à l'énergie",
@@ -26,10 +18,7 @@ export const viewport = {
  */
 export default function RootLayout({ children }) {
   return (
-    <html
-      lang="fr"
-      className={`${outfit.variable} bg-background`}
-    >
+    <html lang="fr" className="bg-background">
       <body className="min-h-dvh bg-background text-foreground font-sans antialiased">
         {children}
       </body>

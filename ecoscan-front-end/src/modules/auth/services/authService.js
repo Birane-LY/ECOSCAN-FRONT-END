@@ -16,18 +16,35 @@ function decodeJwtPayload(token) {
 }
 
 export async function loginWithApi(email, password) {
-  const response = await fetch(`${API_BASE_URL}/auth/connexion/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
+  let response
+  try {
+    response = await fetch(`${API_BASE_URL}/auth/connexion/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+    })
+  } catch {
+    throw new Error('Le serveur EcoScan est injoignable. Vérifiez votre connexion ou réessayez plus tard.')
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.detail || 'Email ou mot de passe incorrect.')
+    const validationMessage = Object.values(errorData)
+      .flatMap((messages) => Array.isArray(messages) ? messages : [messages])
+      .find((message) => typeof message === 'string')
+    throw new Error(
+      errorData.detail ||
+      validationMessage ||
+      (response.status >= 500
+        ? 'Le serveur rencontre un problème lors de la connexion. Réessayez dans quelques instants.'
+        : 'Email ou mot de passe incorrect.')
+    )
   }
 
   const data = await response.json()
+  if (!data.access || !data.refresh) {
+    throw new Error('La réponse de connexion est incomplète. Réessayez ou contactez le support EcoScan.')
+  }
   localStorage.setItem('access_token', data.access)
   localStorage.setItem('refresh_token', data.refresh)
 

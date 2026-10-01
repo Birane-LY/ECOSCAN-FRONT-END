@@ -10,7 +10,7 @@ export const CY = 320
 export const GROUPS = [
   { id: 'CONFIRMEE', label: 'Confirmées', angle: -140, tone: 'ok' },
   { id: 'PARTIELLE', label: 'Partiellement confirmées', angle: -40, tone: 'gold' },
-  { id: 'A_VERIFIER', label: 'À vérifier', angle: 40, tone: 'alert' },
+  { id: 'A_VERIFIER', label: 'Impact à mesurer', angle: 40, tone: 'alert' },
   { id: 'HYPOTHESE', label: 'Hypothèses en attente', angle: 140, tone: 'pearl' },
 ]
 
@@ -21,6 +21,12 @@ const MAX_PER_GROUP = 16
 const rad = (d) => (d * Math.PI) / 180
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
 const polar = (r, deg, squash = 1) => [CX + r * Math.cos(rad(deg)), CY + r * squash * Math.sin(rad(deg))]
+const seed = (value) => {
+  let hash = 2166136261
+  for (const char of String(value)) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619)
+  return hash >>> 0
+}
+const jitter = (key, range) => ((seed(key) / 0xffffffff) * 2 - 1) * range
 
 export function groupOf(m) {
   if (m.statut === 'CONFIRMEE') return 'CONFIRMEE'
@@ -51,7 +57,10 @@ export function buildGraph({ memoires = [], hypotheses = [], hidden = new Set() 
     const items = by[g.id]
     if (hidden.has(g.id)) return
 
-    const [hx, hy] = polar(HUB_RADIUS, g.angle)
+    const [hx, hy] = polar(
+      HUB_RADIUS + jitter(`${g.id}:radius`, 16),
+      g.angle + jitter(`${g.id}:angle`, 8),
+    )
     const hubId = `g-${g.id}`
     nodes.push({
       id: hubId,
@@ -74,26 +83,22 @@ export function buildGraph({ memoires = [], hypotheses = [], hidden = new Set() 
       const m = ringItems.length
       const span = Math.min(88, m * 15)
       ringItems.forEach((it, k) => {
-        const a = g.angle + span * ((k + 0.5) / m - 0.5)
-        const [px, py] = polar(RINGS[ri], a, 0.78) // ellipse : le dessin reste dans le cadre 1000 × 640
+        const a = g.angle + span * ((k + 0.5) / m - 0.5) + jitter(`${it.id}:angle`, Math.min(9, span * 0.14 + 2))
+        const radius = RINGS[ri] + jitter(`${it.id}:radius`, ri ? 24 : 32)
+        const [px, py] = polar(radius, a, 0.78)
         const x = clamp(px, 34, W - 34)
         const y = clamp(py, 34, H - 34)
         const impact = Math.abs(Number(it.raw.impact_attendu_fcfa) || 0)
         const r = it.kind === 'hypothese' ? 10 : impact ? 9 + 9 * Math.sqrt(impact / maxImpact) : 11
         nodes.push({ id: it.id, kind: it.kind, group: g.id, tone: g.tone, raw: it.raw, title: it.title, x, y, r })
 
-        const mx = (hx + x) / 2
-        const my = (hy + y) / 2
-        const dx = x - hx
-        const dy = y - hy
-        const bend = (k % 2 === 0 ? 1 : -1) * 0.12
         edges.push({
           id: `e-${it.id}`,
           type: 'branch',
           group: g.id,
           hub: hubId,
           leaf: it.id,
-          d: `M ${hx} ${hy} Q ${mx - dy * bend} ${my + dx * bend} ${x} ${y}`,
+          d: `M ${hx} ${hy} L ${x} ${y}`,
         })
       })
     })

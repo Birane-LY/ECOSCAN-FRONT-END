@@ -1,0 +1,141 @@
+@startuml
+title Inscription vitrine et demande d'abonnement
+actor Visiteur
+participant "Site vitrine Next.js" as Vitrine
+participant "Route API vitrine" as Proxy
+participant "API Django" as Django
+database PostgreSQL as DB
+participant "Prestataire paiement" as Paiement
+
+Visiteur -> Vitrine : Consulter les plans
+Vitrine -> Proxy : GET /api/billing/plans
+Proxy -> Django : GET /billing/plans/
+Django -> DB : Lire les plans disponibles
+DB --> Django : Plans actifs
+Django --> Proxy : JSON des plans
+Proxy --> Vitrine : Plans affichables
+Visiteur -> Vitrine : Choisir une offre et remplir le formulaire
+Vitrine -> Proxy : POST /api/register
+Proxy -> Django : POST /onboarding/ avec plan_id
+Django -> DB : Créer compte et organisation
+DB --> Django : Résultat d'inscription
+Django --> Proxy : Confirmation ou erreur
+Proxy --> Vitrine : Résultat d'inscription
+opt Paiement requis par le parcours
+  Vitrine -> Django : Demander un checkout
+  Django -> Paiement : Créer une session de paiement
+  Paiement --> Django : URL/statut de session
+  Django -> DB : Enregistrer l'état d'abonnement
+end
+note over Vitrine,Paiement
+  Un plan sélectionné n'est pas un paiement confirmé.
+  Le prestataire dépend du parcours configuré.
+end note
+@enduml
+
+@startuml
+title Import de document et intégration analytique
+actor "Membre connecté" as Membre
+participant "Back-office" as BO
+participant "API Django" as API
+database PostgreSQL as DB
+participant "Pipeline OCR/extraction" as OCR
+participant "Services d'analyse" as Analyse
+
+Membre -> BO : Sélectionner un document
+BO -> API : Téléverser le fichier
+API -> DB : Enregistrer FichierSource
+DB --> API : Identifiant source
+API --> BO : Source enregistrée
+BO -> API : Créer ImportDonnees et lancer
+API -> DB : Vérifier organisation et compteur éventuel
+API -> OCR : Extraire le texte
+alt PDF contenant du texte
+  OCR -> OCR : pdftotext
+else Image ou PDF scanné
+  OCR -> OCR : Tesseract français + Pillow/Poppler
+end
+OCR -> OCR : Classifier et extraire les champs
+OCR --> API : Texte, type et champs
+API -> DB : Enregistrer état et extraction
+API --> BO : Résultat à examiner/intégrer
+Membre -> BO : Vérifier puis confirmer l'intégration
+BO -> API : Confirmer les données validées
+API -> DB : Persister les données/métriques applicables
+API -> Analyse : Détecter les variations applicables
+Analyse -> DB : Persister métriques et anomalies
+API --> BO : État d'analyse
+note over Membre,Analyse
+  Si une revue est demandée, l'import n'est pas
+  une mesure fiable avant validation humaine.
+end note
+@enduml
+
+@startuml
+title Assistant RAG avec données métier
+actor "Membre connecté" as Membre
+participant "Back-office" as BO
+participant "API Django" as Django
+participant "Service IA FastAPI" as IA
+participant "RagStore organisationnel" as RAG
+participant "Endpoint contexte Django" as Contexte
+participant "Routeur LLM" as LLM
+
+Membre -> BO : Poser une question
+BO -> Django : POST question assistant
+Django -> IA : POST /internal/query + jeton interne
+IA -> RAG : Rechercher dans l'organisation
+RAG --> IA : Extraits documentaires
+IA -> Contexte : GET contexte + jeton interne
+Contexte -> Django : Charger données autorisées
+Django --> Contexte : Contexte métier
+Contexte --> IA : Données JSON
+IA -> LLM : Question + extraits + données actuelles
+LLM --> IA : Réponse + modèle utilisé
+IA --> Django : Réponse et sources
+Django --> BO : Résultat assistant
+BO --> Membre : Afficher réponse et sources
+@enduml
+
+@startuml
+title Relevés Woyofal et chaîne de décision
+actor "Membre connecté" as Membre
+participant "Back-office" as BO
+participant "API Django" as API
+database PostgreSQL as DB
+participant "Analyse Woyofal rituel" as Mesure
+participant "Service d'hypothèse IA" as Hypothese
+
+Membre -> BO : Saisir relevé ou recharge
+BO -> API : POST relevé/recharge
+API -> DB : Vérifier accès, point, date et créneau
+API -> DB : Persister le relevé ou la recharge
+opt Clôture journalière ou recharge déclenchant le calcul
+  API -> Mesure : Analyser organisation/jour
+  Mesure -> DB : Lire points, relevés et recharges
+  Mesure -> Mesure : Calculer 08–12, 12–16, 16–20
+  Mesure -> DB : Persister métrique 08 h–20 h
+  alt Référence suffisante et anomalie détectée
+    Mesure -> DB : Persister anomalie
+    Mesure -> Hypothese : Générer une cause probable
+    Hypothese --> Mesure : Hypothèse proposée
+    Mesure -> DB : Persister l'hypothèse
+  else Référence insuffisante ou variation normale
+    Mesure --> API : Statut explicite
+  end
+end
+API --> BO : Résultat/statut
+Membre -> BO : Confirmer l'hypothèse après examen
+BO -> API : Confirmer hypothèse
+API -> DB : Persister validation humaine
+API -> DB : Créer recommandation proposée en kWh
+API --> BO : Confirmation/recommandation ou avertissement
+Membre -> BO : Décider d'adopter ou rejeter
+BO -> API : Enregistrer décision
+API -> DB : Mettre à jour recommandation et objectif déclaré
+note over Mesure,DB
+  Mesure limitée à 08 h–20 h : pas de projection sur 24 h.
+  L'hypothèse et la recommandation restent soumises
+  à une décision humaine.
+end note
+@enduml

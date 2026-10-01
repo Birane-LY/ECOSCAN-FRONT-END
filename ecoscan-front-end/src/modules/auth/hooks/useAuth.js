@@ -77,6 +77,8 @@ export function useAuth() {
     setActiveOrganisation((prev) => organisations.find((o) => o.id === orgId) || prev)
   }, [organisations])
 
+  const refreshOrganisations = useCallback(() => loadOrganisations(activeRole), [activeRole, loadOrganisations])
+
   const switchRole = useCallback((role) => { if (ROLE_PROFILES[role]) setActiveRole(role) }, [])
   const checkPermission = useCallback((capability) => can(activeRole, capability), [activeRole])
 
@@ -86,6 +88,6 @@ export function useAuth() {
     currentProfile: user
       ? { name: user.nom, email: user.email, label: ROLE_PROFILES[user.roleUi]?.label, initials: (user.nom || '?').slice(0, 2).toUpperCase() }
       : ROLE_PROFILES[activeRole] || ROLE_PROFILES.UTILISATEUR_ORGANISATION,
-    login, logout, switchRole, switchOrganisation, can: checkPermission,
+    login, logout, switchRole, switchOrganisation, refreshOrganisations, can: checkPermission,
   }
 }

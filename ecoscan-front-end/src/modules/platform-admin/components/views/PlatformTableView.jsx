@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react'
 import { GlassCard } from '@/components/instruments'
 import { AdminHeading } from './AdminHeading'
 
-export function PlatformTableView({ title, subtitle, columns, rows, notify, actionLabel, onAction }) {
+export function PlatformTableView({ title, subtitle, columns, rows, actionLabel, onAction, renderActions }) {
   return (
     <>
       <AdminHeading
@@ -26,11 +26,22 @@ export function PlatformTableView({ title, subtitle, columns, rows, notify, acti
               <span key={c}>{c}</span>
             ))}
           </div>
-                   {rows.map((row, rowIndex) => (
-            <button type="button" className="adm-row adm-row-btn" key={`${row}-${rowIndex}`} onClick={() => notify('Détail ouvert')}>
-              {row.split(' · ').map((p, i) => (i === 0 ? <strong key={i}>{p}</strong> : <span key={i}>{p}</span>))}
-            </button>
-          ))}
+          {rows.map((row, rowIndex) => {
+            const values = Array.isArray(row) ? row : row.split(' · ')
+            return (
+              <div className="adm-row" key={`${values.join('-')}-${rowIndex}`}>
+                {values.map((value, index) => (
+                  index === 0
+                    ? <strong key={index}>{value}</strong>
+                    : <span key={index}>{value}</span>
+                ))}
+                {renderActions && <span className="adm-row-actions">{renderActions(row, rowIndex)}</span>}
+              </div>
+            )
+          })}
+          {rows.length === 0 && (
+            <p className="drawer-lead" style={{ padding: '1rem' }}>Aucune donnée à afficher.</p>
+          )}
         </div>
       </GlassCard>
     </>

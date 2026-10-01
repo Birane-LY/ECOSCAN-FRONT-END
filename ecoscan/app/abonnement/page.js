@@ -33,6 +33,10 @@ function formatPlanPrice(price, currency = "XOF") {
 
 const FAQS = [
   {
+    q: "Comment fonctionne l’essai gratuit ?",
+    a: "Chaque formule commence par un essai gratuit de 14 jours après l’activation de votre adresse e-mail. Aucun paiement n’est demandé pour démarrer. Vous pourrez souscrire à une offre payante depuis votre espace.",
+  },
+  {
     q: "Comment sont définis les tarifs affichés ?",
     a: "Les tarifs et conditions affichés correspondent aux formules actives configurées par l’équipe EcoScan dans son espace d’administration. Contactez-nous pour toute question sur le périmètre d’une formule.",
   },
@@ -228,6 +232,11 @@ export default function AbonnementPage() {
                         {plan.description || "Une formule EcoScan pour structurer vos données énergétiques et éclairer vos décisions."}
                       </p>
 
+                      <div className="mt-5 rounded-xl border border-[#b8e4d7] bg-[#eff8f6] px-4 py-3 text-sm text-[#176174]">
+                        <strong>14 jours d’essai gratuit</strong>
+                        <span className="mt-1 block text-xs text-[#53656b]">Sans paiement au démarrage · formule conservée pendant l’inscription</span>
+                      </div>
+
                       <div className="mt-6 rounded-2xl border border-white/70 bg-gradient-to-br from-[#081b26] to-[#123d49] p-5 text-white shadow-inner">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">
                           Tarif mensuel
@@ -289,7 +298,7 @@ export default function AbonnementPage() {
                         href={`/onboarding?plan=${encodeURIComponent(plan.id)}`}
                         className="group/button flex w-full items-center justify-center gap-2 rounded-xl bg-[#081b26] px-5 py-3.5 text-center text-sm font-semibold text-white shadow-[0_8px_20px_rgba(8,27,38,0.16)] transition hover:bg-[#123d49] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176174]"
                       >
-                        Demander cette formule
+                        Commencer l’essai avec cette formule
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="transition-transform group-hover/button:translate-x-0.5 group-hover/button:-translate-y-0.5" aria-hidden="true">
                           <path d="M7 17 17 7M7 7h10v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
